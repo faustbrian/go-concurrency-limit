@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	concurrencylimit "github.com/faustbrian/golib/pkg/concurrency-limit"
+	concurrencylimit "github.com/faustbrian/go-concurrency-limit"
 )
 
 func TestAIMDReferenceEquation(t *testing.T) {

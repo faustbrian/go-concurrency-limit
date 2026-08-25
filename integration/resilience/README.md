@@ -8,5 +8,5 @@ must acquire its own limiter permit before invoking downstream work.
 Run from the repository workspace with:
 
 ```sh
-go test ./pkg/concurrency-limit/integration/resilience/...
+go test ./integration/resilience/...
 ```

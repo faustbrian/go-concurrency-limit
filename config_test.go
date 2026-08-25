@@ -3,7 +3,7 @@ package concurrencylimit_test
 import (
 	"testing"
 
-	concurrencylimit "github.com/faustbrian/golib/pkg/concurrency-limit"
+	concurrencylimit "github.com/faustbrian/go-concurrency-limit"
 )
 
 func TestNewRejectsInvalidLimitBounds(t *testing.T) {

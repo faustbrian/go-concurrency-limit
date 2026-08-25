@@ -8,10 +8,10 @@ import (
 	"testing"
 	"time"
 
-	concurrencylimit "github.com/faustbrian/golib/pkg/concurrency-limit"
-	"github.com/faustbrian/golib/pkg/hedge"
-	"github.com/faustbrian/golib/pkg/resilience"
-	"github.com/faustbrian/golib/pkg/retry"
+	concurrencylimit "github.com/faustbrian/go-concurrency-limit"
+	"github.com/faustbrian/go-hedge"
+	"github.com/faustbrian/go-resilience"
+	"github.com/faustbrian/go-retry"
 )
 
 func TestRetryAndHedgeConsumeOneSharedAmplificationBudget(t *testing.T) {

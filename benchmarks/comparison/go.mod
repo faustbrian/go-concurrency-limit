@@ -1,10 +1,10 @@
-module github.com/faustbrian/golib/pkg/concurrency-limit/benchmarks/comparison
+module github.com/faustbrian/go-concurrency-limit/benchmarks/comparison
 
 go 1.26.6
 
 require (
 	github.com/failsafe-go/failsafe-go v0.9.6
-	github.com/faustbrian/golib/pkg/concurrency-limit v0.0.0
+	github.com/faustbrian/go-concurrency-limit v1.0.0
 	github.com/platinummonkey/go-concurrency-limits v1.0.0
 )
 

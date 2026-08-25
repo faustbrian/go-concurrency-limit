@@ -15,8 +15,8 @@ import (
 	"time"
 
 	"github.com/failsafe-go/failsafe-go/adaptivelimiter"
-	concurrencylimit "github.com/faustbrian/golib/pkg/concurrency-limit"
-	"github.com/faustbrian/golib/pkg/concurrency-limit/benchmarks/comparison/internal/netflix"
+	concurrencylimit "github.com/faustbrian/go-concurrency-limit"
+	"github.com/faustbrian/go-concurrency-limit/benchmarks/comparison/internal/netflix"
 	"github.com/platinummonkey/go-concurrency-limits/core"
 	platinumlimit "github.com/platinummonkey/go-concurrency-limits/limit"
 )

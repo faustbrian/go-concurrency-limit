@@ -1,10 +1,10 @@
-module github.com/faustbrian/golib/pkg/concurrency-limit/integration/resilience
+module github.com/faustbrian/go-concurrency-limit/integration/resilience
 
 go 1.26.6
 
 require (
-	github.com/faustbrian/golib/pkg/concurrency-limit v0.0.0
-	github.com/faustbrian/golib/pkg/hedge v0.0.0
-	github.com/faustbrian/golib/pkg/resilience v0.0.0
-	github.com/faustbrian/golib/pkg/retry v0.0.0
+	github.com/faustbrian/go-concurrency-limit v1.0.0
+	github.com/faustbrian/go-hedge v1.0.0
+	github.com/faustbrian/go-resilience v1.0.0
+	github.com/faustbrian/go-retry v1.0.0
 )

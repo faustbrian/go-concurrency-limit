@@ -1,0 +1,42 @@
+{
+  "schema_version": 1,
+  "repository": "github.com/faustbrian/go-concurrency-limit",
+  "packages": [
+    {
+      "module_directory": ".",
+      "directory": ".",
+      "name": "concurrencylimit",
+      "import_path": "github.com/faustbrian/go-concurrency-limit",
+      "kind": "public",
+      "production": true,
+      "executable": true,
+      "coverage_required": true,
+      "build_required": true,
+      "build_tags": []
+    },
+    {
+      "module_directory": "benchmarks/comparison",
+      "directory": "cmd/report",
+      "name": "main",
+      "import_path": "github.com/faustbrian/go-concurrency-limit/benchmarks/comparison/cmd/report",
+      "kind": "harness",
+      "production": false,
+      "executable": true,
+      "coverage_required": false,
+      "build_required": true,
+      "build_tags": []
+    },
+    {
+      "module_directory": "benchmarks/comparison",
+      "directory": "internal/netflix",
+      "name": "netflix",
+      "import_path": "github.com/faustbrian/go-concurrency-limit/benchmarks/comparison/internal/netflix",
+      "kind": "harness",
+      "production": false,
+      "executable": true,
+      "coverage_required": false,
+      "build_required": true,
+      "build_tags": []
+    }
+  ]
+}

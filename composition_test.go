@@ -5,7 +5,7 @@ import (
 	"errors"
 	"testing"
 
-	concurrencylimit "github.com/faustbrian/golib/pkg/concurrency-limit"
+	concurrencylimit "github.com/faustbrian/go-concurrency-limit"
 )
 
 func TestRetryAndHedgeAttemptsCannotBypassAdmissionOrAmplifyPastBudget(t *testing.T) {

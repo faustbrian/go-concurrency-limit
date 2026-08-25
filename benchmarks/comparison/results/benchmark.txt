@@ -1,6 +1,6 @@
 goos: darwin
 goarch: arm64
-pkg: github.com/faustbrian/golib/pkg/concurrency-limit/benchmarks/comparison
+pkg: github.com/faustbrian/go-concurrency-limit/benchmarks/comparison
 cpu: Apple M4 Max
 BenchmarkGradientUpdate/LocalGradient2-16          64290738        34.99 ns/op       0 B/op       0 allocs/op
 BenchmarkGradientUpdate/LocalGradient2-16          61862978        25.17 ns/op       0 B/op       0 allocs/op
@@ -28,4 +28,4 @@ BenchmarkPermitLifecycle/FailsafeGo-16               2141758        585.2 ns/op 
 BenchmarkPermitLifecycle/FailsafeGo-16               2534337        815.5 ns/op      96 B/op       1 allocs/op
 BenchmarkPermitLifecycle/FailsafeGo-16               2683645        542.3 ns/op      96 B/op       1 allocs/op
 PASS
-ok  github.com/faustbrian/golib/pkg/concurrency-limit/benchmarks/comparison  46.135s
+ok  github.com/faustbrian/go-concurrency-limit/benchmarks/comparison  46.135s

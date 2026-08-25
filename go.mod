@@ -1,3 +1,3 @@
-module github.com/faustbrian/golib/pkg/concurrency-limit
+module github.com/faustbrian/go-concurrency-limit
 
 go 1.26.6
