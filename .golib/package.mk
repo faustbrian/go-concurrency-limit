@@ -12,7 +12,7 @@ race:
 	go test -race ./... -count=3
 
 coverage:
-	../../scripts/check-coverage.sh .
+	./.golib/scripts/check-coverage.sh .
 
 fuzz:
 	go test -run='^$$' -fuzz=FuzzLimitHistoriesRemainFiniteAndBounded -fuzztime=$(FUZZ_TIME) .
@@ -38,4 +38,4 @@ docs:
 	go list -f '{{if .GoFiles}}{{.ImportPath}}{{end}}' ./... | xargs -n 1 go doc >/dev/null
 
 api-compat:
-	../../scripts/check-api-baseline.sh .
+	./.golib/scripts/check-api-baseline.sh .
