@@ -17,16 +17,5 @@
       "report_sha256": "521b14e2ab6bbd3709a33b5aab436202f75ad03c691fea62b7542df32ad37029"
     }
   ],
-  "entries": [
-    {
-      "module": ".",
-      "package": ".",
-      "execution_revision": "d7d487f309f3921eff48c5bb277ff11a4fef7077",
-      "gate_input_digest": "5a571537297203cf08f0b98b4aa4a0fa2932ad9c1ef45d0b7adee6fca635786c",
-      "replacement_gate_input_digest": "56d7dcfc250ba305de4997c61cc3944a5acd5cdfdda545486964d71bf575a57d",
-      "gremlins_version": "v0.6.0",
-      "gremlins_verifier_sha256": "9a9499ff68a8dfd49a0be7995590297a8ee563a1aa226bfd8b9361dc53058108",
-      "report_sha256": "521b14e2ab6bbd3709a33b5aab436202f75ad03c691fea62b7542df32ad37029"
-    }
-  ]
+  "entries": []
 }
