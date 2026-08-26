@@ -25,10 +25,6 @@
 
 - Publish the module from its standalone `github.com/faustbrian/go-concurrency-limit` identity while preserving its documented API and behavior.
 
-### Documentation
-
-- Link the package README to the repository-wide Golib documentation portal.
-
 ### Added
 
 - Add bounded standalone permit admission and typed execution helpers with
