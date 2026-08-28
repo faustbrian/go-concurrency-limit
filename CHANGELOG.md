@@ -2,6 +2,16 @@
 
 ## Unreleased
 
+### Changed
+
+- Replace copied repository tooling with the pinned shared `golib` contract
+  while retaining package-owned policy and verification evidence.
+
+### Documentation
+
+- Remove completed implementation plans from the release tree and retain
+  package-owned documentation as the maintained reference.
+
 ## 1.0.0 - 2026-08-25
 
 ### Changed
@@ -24,10 +34,6 @@
 ### Changed
 
 - Publish the module from its standalone `github.com/faustbrian/go-concurrency-limit` identity while preserving its documented API and behavior.
-
-### Documentation
-
-- Link the package README to the repository-wide Golib documentation portal.
 
 ### Added
 
