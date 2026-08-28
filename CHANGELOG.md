@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+### Changed
+
+- Replace copied repository tooling with the pinned shared `golib` contract
+  while retaining package-owned policy and verification evidence.
+
 ### Documentation
 
 - Remove completed implementation plans from the release tree and retain
