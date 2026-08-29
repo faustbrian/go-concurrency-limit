@@ -28,13 +28,15 @@ operations:
 - module: "."
   gate: test
   steps:
-  - type: make
-    makefile: verification/package.mk
-    target: fault
+  - type: go-test
+    packages: ["."]
+    run: '^Test(CompletionClockFailureReleasesCapacityWithoutLearningOrGrantingInvalidPermits|ClockMetadataSamplingAndAlgorithmFaultBoundaries|ExecuteContainsClassifierPanicAndOperationPanicReleasesPermit|LimiterFaultAndEventMutationBoundaries|NewRejectsAlgorithmLifecyclePanicsAndInvalidState|QueuedAcquireContainsTimerStopPanic)$'
+    count: 20
     timeout: 20m
-  - type: make
-    makefile: verification/package.mk
-    target: leak
+  - type: go-test
+    packages: ["."]
+    run: '^TestCanceledWaitersTerminateWithoutBackgroundWorkers$'
+    count: 20
     timeout: 20m
   - type: make
     makefile: verification/package.mk
