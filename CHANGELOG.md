@@ -4,12 +4,9 @@
 
 ### Changed
 
-- Replace copied repository tooling with the pinned shared `golib` contract
-  while retaining package-owned policy and verification evidence.
-
-- Update the shared `go-library-tools` contract to v1.0.4 while retaining
-  package-owned policy, typed package checks, and source-specific verification
-  evidence.
+- Replace copied `go-library-tools` tooling with the pinned v1.0.4 contract
+  while retaining package-owned policy, typed package checks, and
+  source-specific verification evidence.
 
 ### Documentation
 
