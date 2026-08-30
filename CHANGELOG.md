@@ -4,7 +4,7 @@
 
 ### Changed
 
-- Replace copied `go-library-tools` tooling with the pinned v1.0.4 contract
+- Replace copied `go-library-tools` tooling with the pinned v1.0.13 contract
   while retaining package-owned policy, typed package checks, and
   source-specific verification evidence.
 
