@@ -1,5 +1,5 @@
 {
-  "schema_version": 1,
+  "schema_version": 2,
   "repository": "github.com/faustbrian/go-concurrency-limit",
   "go_version": "1.26.6",
   "modules": [
@@ -49,6 +49,84 @@
       "goal_files": [],
       "goal_status": "not-applicable",
       "goal_evidence": [],
+      "cohesion": {
+        "family": "resilience",
+        "secondary_capabilities": [
+          "observability",
+          "resilience-and-admission"
+        ],
+        "responsibility": "Provide bounded, process-local adaptive in-flight admission that learns a safe concurrency limit from explicit execution outcomes.",
+        "non_goals": [
+          "Provide fixed semaphores, bulkhead partitions, rate quotas, breaker state, retries, hedges, fallbacks, autoscaling, or distributed concurrency control."
+        ],
+        "public_package_identifier": "concurrencylimit",
+        "primary_entry_packages": [
+          "github.com/faustbrian/go-concurrency-limit"
+        ],
+        "package_selection": {
+          "github.com/faustbrian/go-concurrency-limit": "Use for adaptive process-local in-flight admission based on bounded latency, throughput, utilization, and overload observations."
+        },
+        "lifecycle_status": "active",
+        "maturity": "stable",
+        "construction_styles": [
+          "new-config",
+          "plain-function"
+        ],
+        "lifecycle_styles": [
+          "drain",
+          "stateless"
+        ],
+        "ownership": {
+          "configuration": "caller",
+          "mutable_inputs": [
+            "borrow",
+            "copy"
+          ],
+          "runtime_resources": "package",
+          "background_work": "none"
+        },
+        "optional_owned_dependencies": [],
+        "adapters": [],
+        "companions": [
+          "github.com/faustbrian/go-bulkhead",
+          "github.com/faustbrian/go-circuit-breaker",
+          "github.com/faustbrian/go-hedge",
+          "github.com/faustbrian/go-rate-limit",
+          "github.com/faustbrian/go-resilience",
+          "github.com/faustbrian/go-retry",
+          "github.com/faustbrian/go-semaphore"
+        ],
+        "supported_go": {
+          "minimum": "1.26.6",
+          "tested": [
+            "1.26.6"
+          ]
+        },
+        "supported_platforms": [
+          "portable-go"
+        ],
+        "supported_backends": [],
+        "supported_protocols": [],
+        "documentation": {
+          "readme": "README.md",
+          "api": "docs/api.md",
+          "adoption": "docs/composition.md",
+          "security": "docs/security.md",
+          "compatibility": "COMPATIBILITY.md",
+          "performance": "docs/benchmarks.md",
+          "examples": "example_test.go",
+          "faq": "docs/faq.md",
+          "changelog": "CHANGELOG.md",
+          "pkg_go_dev": "https://pkg.go.dev/github.com/faustbrian/go-concurrency-limit",
+          "ecosystem_index": "https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/README.md"
+        },
+        "known_good_compatibility_sets": [],
+        "delivery": {
+          "implementation": "not-started",
+          "hardening": "not-started",
+          "release": "not-started"
+        }
+      },
       "gates": {
         "api_compatibility": true,
         "benchmarks": true,
@@ -97,6 +175,10 @@
       "lifecycle": "internal",
       "kind": "benchmark harness",
       "releasable": false,
+      "family": "resilience",
+      "family_label": "Resilience",
+      "family_description": "Explicit admission, isolation, retry, amplification, and failure policies.",
+      "family_order": 5,
       "version": "unreleased",
       "tag_prefix": "benchmarks/comparison/v",
       "owned_dependencies": [
@@ -140,6 +222,10 @@
       "lifecycle": "internal",
       "kind": "interoperability harness",
       "releasable": false,
+      "family": "resilience",
+      "family_label": "Resilience",
+      "family_description": "Explicit admission, isolation, retry, amplification, and failure policies.",
+      "family_order": 5,
       "version": "unreleased",
       "tag_prefix": "integration/resilience/v",
       "owned_dependencies": [

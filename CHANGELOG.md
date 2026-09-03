@@ -4,14 +4,18 @@
 
 ### Changed
 
-- Replace copied `go-library-tools` tooling with the pinned v1.0.13 contract
-  while retaining package-owned policy, typed package checks, and
-  source-specific verification evidence.
+- Adopt the checksum-verified `go-library-tools` v1.4.0 CLI, schema-v2 cohesion
+  metadata, repository-local `make cohesion` gate, and immutable W14 workflow
+  while retaining package-owned policy and source-specific evidence.
+- Reconcile nested-module checksums to their published v1.0.0 archives without
+  changing the concurrency-limit API or runtime behavior.
 
 ### Documentation
 
 - Remove completed implementation plans from the release tree and retain
   package-owned documentation as the maintained reference.
+- Link the package entry point to the immutable v1.4.0 Golib ecosystem index
+  and resilience-family selection guidance.
 
 ## 1.0.0 - 2026-08-25
 
