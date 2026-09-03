@@ -15,6 +15,11 @@ limiter for Go. It learns a safe local limit from execution latency, achieved
 throughput, utilization, and explicit overload outcomes before queues grow into
 widespread timeouts.
 
+Browse the versioned [Golib ecosystem index](https://github.com/faustbrian/go-library-tools/blob/v1.3.0/docs/ecosystem/README.md)
+and its [resilience family guidance](https://github.com/faustbrian/go-library-tools/blob/v1.3.0/docs/ecosystem/design-language.md#package-families-and-selection)
+to compare adaptive admission with fixed isolation, rate, breaker, retry, and
+hedging policies.
+
 It does not implement fixed semaphores, bulkhead partitions, rate quotas,
 failure-rate throttling, breaker state, retries, hedges, fallbacks, discovery,
 autoscaling, or a distributed control plane.
