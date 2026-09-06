@@ -24,6 +24,14 @@ It does not implement fixed semaphores, bulkhead partitions, rate quotas,
 failure-rate throttling, breaker state, retries, hedges, fallbacks, discovery,
 autoscaling, or a distributed control plane.
 
+The module is a stable v1 public library. It requires Go 1.26.6 or newer.
+
+## Install
+
+```sh
+go get github.com/faustbrian/go-concurrency-limit@v1
+```
+
 ## Quick start
 
 ```go
@@ -71,8 +79,24 @@ call `Permit.Complete` exactly once with `OutcomeSuccess`,
 - Observer and classifier calls execute outside the limiter state lock. Their
   panics are contained and counted.
 
+## Lifecycle and ownership
+
+A `Limiter` owns bounded in-memory admission, queue, sampling, and algorithm
+state. It starts no goroutines, performs no network I/O, and owns no external
+resources. A limiter is safe for concurrent use. Callers own operation
+contexts, admitted work, and each permit until its one required completion;
+injected clocks, timers, classifiers, and observers retain their own
+concurrency and resource responsibilities.
+
+Before discarding a limiter, applications call `BeginDrain`, stop or complete
+accepted work under an application-owned deadline, and classify shutdown
+cancellation as `OutcomeIgnored`. `ReapExpired` and `Reset` are explicit
+caller-driven lifecycle operations; there is no `Close` method or background
+shutdown work.
+
 ## Documentation
 
+- [Documentation index](docs/README.md)
 - [API and defaults](docs/api.md)
 - [Algorithm equations and selection](docs/algorithms.md)
 - [Sampling and tuning](docs/sampling.md)
@@ -83,5 +107,9 @@ call `Permit.Complete` exactly once with `OutcomeSuccess`,
 - [Benchmarks and reproducible simulations](docs/benchmarks.md)
 - [Migration](docs/migration.md), [FAQ](docs/faq.md), and
   [security](docs/security.md)
+- [Support](SUPPORT.md)
+- [Security policy and reporting guidance](SECURITY.md)
+- [Compatibility policy](COMPATIBILITY.md)
+- [Release history](CHANGELOG.md)
 
 The module uses only the Go standard library and is licensed under MIT.

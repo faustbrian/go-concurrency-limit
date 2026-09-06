@@ -12,6 +12,9 @@
 
 ### Documentation
 
+- Add canonical v1 installation, stable Go support, lifecycle and ownership,
+  project support, and security-reporting guidance.
+
 - Remove completed implementation plans from the release tree and retain
   package-owned documentation as the maintained reference.
 - Link the package entry point to the immutable v1.4.0 Golib ecosystem index
