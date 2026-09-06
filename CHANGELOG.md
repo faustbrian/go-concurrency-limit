@@ -12,6 +12,12 @@
 
 ### Documentation
 
+- Complete root and repository-only module navigation, add actionable limiter
+  troubleshooting and direct support and security routes, and bind the full
+  documentation contract to the module gate.
+- Clarify root and nested-module tag formats and correct the immutable v1.0.0
+  publication date.
+
 - Add canonical v1 installation, stable Go support, lifecycle and ownership,
   project support, and security-reporting guidance.
 
@@ -20,7 +26,7 @@
 - Link the package entry point to the immutable v1.4.0 Golib ecosystem index
   and resilience-family selection guidance.
 
-## 1.0.0 - 2026-08-25
+## 1.0.0 - 2026-08-26
 
 ### Changed
 

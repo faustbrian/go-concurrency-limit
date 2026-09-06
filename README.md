@@ -49,6 +49,10 @@ value, err := concurrencylimit.Execute(ctx, limiter,
     func(ctx context.Context) (string, error) {
         return dependency.Call(ctx)
     })
+if err != nil {
+    return err
+}
+use(value)
 ```
 
 `NewDefaultAlgorithm` is the conservative Vegas profile used by the published
@@ -60,6 +64,21 @@ For a standalone lifecycle, call `Acquire`, execute the admitted work, then
 call `Permit.Complete` exactly once with `OutcomeSuccess`,
 `OutcomeDependencyFailure`, `OutcomeLocalDrop`, `OutcomeIgnored`, or
 `OutcomeOverload`. Queue wait is excluded from execution latency.
+
+## Package map
+
+- [`github.com/faustbrian/go-concurrency-limit`](https://pkg.go.dev/github.com/faustbrian/go-concurrency-limit)
+  is the stable public module and sole production package.
+- [`benchmarks/comparison`](benchmarks/comparison/README.md) is an internal,
+  unreleased comparison harness for the local algorithm and pinned external
+  implementations. It is repository engineering evidence, not an importable
+  public adapter or a supported performance ranking.
+- [`integration/resilience`](integration/resilience/README.md) is an internal,
+  unreleased composition harness for adaptive admission with retry and hedge
+  policies. It is repository verification, not a released integration module.
+
+The two nested modules are used only from this repository workspace and do not
+expand the public API or release surface.
 
 ## Operational contract
 
@@ -107,6 +126,8 @@ shutdown work.
 - [Benchmarks and reproducible simulations](docs/benchmarks.md)
 - [Migration](docs/migration.md), [FAQ](docs/faq.md), and
   [security](docs/security.md)
+- [Comparison harness](benchmarks/comparison/README.md) and
+  [resilience integration harness](integration/resilience/README.md)
 - [Support](SUPPORT.md)
 - [Security policy and reporting guidance](SECURITY.md)
 - [Compatibility policy](COMPATIBILITY.md)

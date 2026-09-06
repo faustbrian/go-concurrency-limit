@@ -15,6 +15,16 @@ Start with the [API](api.md), [algorithm equations](algorithms.md), and
 [benchmarks](benchmarks.md), with adoption help in [migration](migration.md),
 [FAQ](faq.md), and [security](security.md).
 
+## Repository-only modules
+
+- The [comparison harness](../benchmarks/comparison/README.md) records bounded,
+  reproducible comparisons with pinned external implementations.
+- The [resilience integration harness](../integration/resilience/README.md)
+  proves application-owned retry and hedge composition.
+
+Both nested modules are internal and unreleased. The root module remains the
+only supported public import and release surface.
+
 ## Support and maintenance
 
 - [Support](../SUPPORT.md)

@@ -1,7 +1,10 @@
 # Compatibility Policy
 
-Each releasable directory is an independent Go module and follows semantic
-versioning. Tags use `<module-directory>/v<version>`.
+Each releasable Go module follows semantic versioning. The root module uses
+`v<version>` tags; independently releasable nested modules use
+`<module-directory>/v<version>` tags. The current `benchmarks/comparison` and
+`integration/resilience` modules are internal and unreleased, so neither has a
+supported release tag.
 
 Before `v1`, minor releases MAY contain reviewed breaking changes, but every
 break MUST be documented with migration guidance. Patch releases MUST remain
