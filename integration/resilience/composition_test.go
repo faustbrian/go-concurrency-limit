@@ -37,7 +37,7 @@ func TestRetryAndHedgeConsumeOneSharedAmplificationBudget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	retryPolicy, err := retry.NewPolicy(retry.Config{
+	retryPolicy, err := retry.NewPolicyStrict(retry.Config{
 		Backoff: retry.Constant(0), MaxAttempts: 2,
 		Clock: retry.SystemClock{}, Sleeper: retry.SystemSleeper{},
 		Classifier: retry.RetryableClassifier(), UseResilienceBudget: true,
@@ -64,9 +64,9 @@ func TestRetryAndHedgeConsumeOneSharedAmplificationBudget(t *testing.T) {
 	firstHedgeStarted := make(chan struct{})
 	var firstHedgeSignal sync.Once
 	var secondReport hedge.Report
-	_, retryResult, executeErr := retry.Do(ctx, retryPolicy, func(ctx context.Context) (string, error) {
+	retryResult, executeErr := retry.DoStrict(ctx, retryPolicy, func(ctx context.Context) (retry.AttemptResult[string], error) {
 		invocation := invocations.Add(1)
-		_, report, hedgeErr := hedge.Do(ctx, hedgePolicy, hedge.AttemptFactoryFunc[string](func(info hedge.AttemptInfo) (hedge.Attempt[string], string, error) {
+		value, report, hedgeErr := hedge.Do(ctx, hedgePolicy, hedge.AttemptFactoryFunc[string](func(info hedge.AttemptInfo) (hedge.Attempt[string], string, error) {
 			return func(context.Context) (string, error) {
 				physical.Add(1)
 				if invocation == 1 && !info.Hedge {
@@ -87,10 +87,10 @@ func TestRetryAndHedgeConsumeOneSharedAmplificationBudget(t *testing.T) {
 		if invocation == 2 {
 			secondReport = report
 		}
-		return "", retry.Retryable(hedgeErr)
+		return retry.AttemptResult[string]{Value: value, Outcome: retry.OutcomeKnown}, retry.Retryable(hedgeErr)
 	})
 	var exhausted *retry.ExhaustedError
-	if !errors.As(executeErr, &exhausted) || retryResult.Attempts != 2 {
+	if !errors.As(executeErr, &exhausted) || retryResult.Value != "" || retryResult.Outcome != retry.OutcomeKnown || retryResult.Retry.Attempts != 2 {
 		t.Fatalf("retry result = %+v, error = %v", retryResult, executeErr)
 	}
 	if invocations.Load() != 2 || physical.Load() != 4 || secondReport.BudgetDenied != 2 || secondReport.HedgesStarted != 0 {
@@ -109,7 +109,7 @@ func TestLocalAdmissionRejectionIsNotRetried(t *testing.T) {
 	}
 	defer func() { _ = holder.Complete(concurrencylimit.OutcomeIgnored) }()
 
-	policy, err := retry.NewPolicy(retry.Config{
+	policy, err := retry.NewPolicyStrict(retry.Config{
 		Backoff: retry.Constant(0), MaxAttempts: 3,
 		Clock: retry.SystemClock{}, Sleeper: retry.SystemSleeper{},
 		Classifier: retry.RetryableClassifier(),
@@ -119,17 +119,18 @@ func TestLocalAdmissionRejectionIsNotRetried(t *testing.T) {
 	}
 	var logicalAttempts atomic.Uint64
 	var downstreamCalls atomic.Uint64
-	_, result, err := retry.Do(context.Background(), policy, func(ctx context.Context) (struct{}, error) {
+	result, err := retry.DoStrict(context.Background(), policy, func(ctx context.Context) (retry.AttemptResult[struct{}], error) {
 		logicalAttempts.Add(1)
-		return concurrencylimit.Execute(ctx, limiter, func(context.Context) (struct{}, error) {
+		value, executeErr := concurrencylimit.Execute(ctx, limiter, func(context.Context) (struct{}, error) {
 			downstreamCalls.Add(1)
 			return struct{}{}, errors.New("downstream failure")
 		})
+		return retry.AttemptResult[struct{}]{Value: value, Outcome: retry.OutcomeKnown}, executeErr
 	})
 	if !errors.Is(err, concurrencylimit.ErrLimitExceeded) {
-		t.Fatalf("retry.Do() error = %v, want ErrLimitExceeded", err)
+		t.Fatalf("retry.DoStrict() error = %v, want ErrLimitExceeded", err)
 	}
-	if result.Attempts != 1 || result.Reason != retry.ReasonPermanent || logicalAttempts.Load() != 1 {
+	if result.Outcome != retry.OutcomeKnown || result.Retry.Attempts != 1 || result.Retry.Reason != retry.ReasonPermanent || logicalAttempts.Load() != 1 {
 		t.Fatalf("retry result = %+v, logical attempts = %d", result, logicalAttempts.Load())
 	}
 	if downstreamCalls.Load() != 0 {
