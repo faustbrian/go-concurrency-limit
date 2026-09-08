@@ -218,7 +218,7 @@
       "module_path": "github.com/faustbrian/go-concurrency-limit/integration/resilience",
       "go_version": "1.26.6",
       "packages": [],
-      "purpose": "This non-releasable integration module proves application-owned composition through the public adaptive limiter, retry, and hedge contracts. Local admission rejection remains a permanent retry outcome, and every hedge attempt must acquire its own limiter permit before invoking downstream work.",
+      "purpose": "This non-releasable integration module proves application-owned composition through the public adaptive limiter, strict retry, and hedge contracts. In-process attempts declare known outcomes, local admission rejection remains permanent, and every hedge attempt acquires its own limiter permit before invoking downstream work.",
       "lifecycle": "internal",
       "kind": "interoperability harness",
       "releasable": false,

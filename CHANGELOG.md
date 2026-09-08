@@ -4,6 +4,10 @@
 
 ### Changed
 
+- Migrate the non-releasable resilience integration harness to Retry v1.1.0's
+  strict policy and execution contracts with explicit known outcomes for its
+  in-process operations.
+
 - Adopt the checksum-verified `go-library-tools` v1.4.0 CLI, schema-v2 cohesion
   metadata, repository-local `make cohesion` gate, and immutable W14 workflow
   while retaining package-owned policy and source-specific evidence.
