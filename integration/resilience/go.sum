@@ -6,8 +6,8 @@ github.com/cenkalti/backoff/v5 v5.0.3 h1:ZN+IMa753KfX5hd8vVaMixjnqRZ3y8CuJKRKj1x
 github.com/cenkalti/backoff/v5 v5.0.3/go.mod h1:rkhZdG3JZukswDf7f0cwqPNk4K0sa+F97BxZthm/crw=
 github.com/cespare/xxhash/v2 v2.3.0 h1:UL815xU9SqsFlibzuggzjXhog7bL6oX9BbNZnL2UFvs=
 github.com/cespare/xxhash/v2 v2.3.0/go.mod h1:VGX0DQ3Q6kWi7AoAeZDth3/j3BFtOZR5XLFGgcrjCOs=
-github.com/failsafe-go/failsafe-go v0.9.6 h1:vPSH2cry0Ee5cnR9wc9qshCDO6jdrMA9elBJNwyo4Uk=
-github.com/failsafe-go/failsafe-go v0.9.6/go.mod h1:IeRpglkcwzKagjDMh90ZhN2l4Ovt3+jemQBUbThag54=
+github.com/failsafe-go/failsafe-go v0.9.7 h1:5P94eoJrikyTTayHTS4fNyc17ejdlPBh5DXAK4ai6KY=
+github.com/failsafe-go/failsafe-go v0.9.7/go.mod h1:IeRpglkcwzKagjDMh90ZhN2l4Ovt3+jemQBUbThag54=
 github.com/faustbrian/go-concurrency-limit v1.0.0 h1:7YXJz1vSlO+EMvh/vtvj+aYKHC+tOB1cGbcLSVUI9LQ=
 github.com/faustbrian/go-concurrency-limit v1.0.0/go.mod h1:q3dIb4dYxXlr/aDOp87ZRBIRXg57wsK95qcC74P2I5A=
 github.com/faustbrian/go-hedge v1.0.0 h1:/HjlsrN8J+13BVU3XxTsdOyWfhFFM+B9iCPzS6+OiLY=
