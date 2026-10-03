@@ -6,6 +6,7 @@ import (
 	"math"
 	"math/bits"
 	"strings"
+	"sync"
 	"testing"
 	"time"
 )
@@ -205,14 +206,21 @@ func TestQueueTimeoutCancellationResetDrainAndGrantRace(t *testing.T) {
 func TestQueuedAcquireContainsTimerStopPanic(t *testing.T) {
 	t.Parallel()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	var acquisitions sync.WaitGroup
+	defer func() {
+		cancel()
+		acquisitions.Wait()
+	}()
+
 	clock := &queueClock{now: time.Unix(0, 0), panicStop: true}
 	limiter := mustInternalLimiter(t, Config{
 		MinLimit: 1, MaxLimit: 1, InitialLimit: 1, Algorithm: NewFixedAlgorithm(), Clock: clock,
 		Queue: QueueConfig{MaxQueued: 1, MaxWait: time.Second},
 	})
-	active, err := limiter.Acquire(context.Background())
-	if err != nil {
-		t.Fatal(err)
+	active, err := limiter.Acquire(ctx)
+	if err != nil || active == nil {
+		t.Fatalf("initial admission = permit %v, error %v", active, err)
 	}
 	type acquireOutcome struct {
 		permit *Permit
@@ -220,13 +228,15 @@ func TestQueuedAcquireContainsTimerStopPanic(t *testing.T) {
 		panic  any
 	}
 	result := make(chan acquireOutcome, 1)
+	acquisitions.Add(1)
 	go func() {
+		defer acquisitions.Done()
 		outcome := acquireOutcome{}
 		defer func() {
 			outcome.panic = recover()
 			result <- outcome
 		}()
-		outcome.permit, outcome.err = limiter.Acquire(context.Background())
+		outcome.permit, outcome.err = limiter.Acquire(ctx)
 	}()
 	waitInternalQueued(t, limiter, 1)
 	if err = active.Complete(OutcomeSuccess); err != nil {
@@ -243,6 +253,9 @@ func TestQueuedAcquireContainsTimerStopPanic(t *testing.T) {
 	}
 	if err = outcome.permit.Complete(OutcomeSuccess); err != nil {
 		t.Fatal(err)
+	}
+	if snapshot := limiter.Snapshot(); snapshot.InFlight != 0 || snapshot.Queued != 0 {
+		t.Fatalf("completed queued admission retained capacity: %+v", snapshot)
 	}
 }
 
@@ -354,19 +367,28 @@ func TestClockMetadataSamplingAndAlgorithmFaultBoundaries(t *testing.T) {
 func TestCompletionClockFailureReleasesCapacityWithoutLearningOrGrantingInvalidPermits(t *testing.T) {
 	t.Parallel()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	var acquisitions sync.WaitGroup
+	defer func() {
+		cancel()
+		acquisitions.Wait()
+	}()
+
 	clock := &queueClock{now: time.Unix(0, 100)}
 	limiter := mustInternalLimiter(t, Config{
 		MinLimit: 1, MaxLimit: 1, InitialLimit: 1,
 		Algorithm: NewFixedAlgorithm(), Clock: clock, PermitTTL: time.Nanosecond,
 		Queue: QueueConfig{MaxQueued: 1, MaxWait: time.Hour},
 	})
-	active, err := limiter.Acquire(context.Background())
-	if err != nil {
-		t.Fatal(err)
+	active, err := limiter.Acquire(ctx)
+	if err != nil || active == nil {
+		t.Fatalf("initial admission = permit %v, error %v", active, err)
 	}
 	queued := make(chan acquireResult, 1)
+	acquisitions.Add(1)
 	go func() {
-		permit, acquireErr := limiter.Acquire(context.Background())
+		defer acquisitions.Done()
+		permit, acquireErr := limiter.Acquire(ctx)
 		queued <- acquireResult{permit: permit, err: acquireErr}
 	}()
 	waitInternalQueued(t, limiter, 1)
