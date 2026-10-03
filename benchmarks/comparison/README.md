@@ -10,7 +10,7 @@ The candidates are:
   `78a74b9878d38c4c048b0304ce12a162ab7b7222`, represented by a transparent Go
   port of its `Gradient2Limit` update equation;
 - Failsafe-Go adaptive limiter v0.9.7 through its public permit API; and
-- `platinummonkey/go-concurrency-limits` v1.0.0 through its public Gradient2
+- `platinummonkey/go-concurrency-limits` v1.0.1 through its public Gradient2
   API.
 
 The candidates do not expose identical sampling contracts. The local and
