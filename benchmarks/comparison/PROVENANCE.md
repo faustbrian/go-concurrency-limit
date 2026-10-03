@@ -22,9 +22,12 @@ against the other candidates before replacing this record.
 
 ## Go implementations
 
-- Failsafe-Go: `github.com/failsafe-go/failsafe-go` v0.9.6, MIT.
+- Failsafe-Go: `github.com/failsafe-go/failsafe-go` v0.9.7, MIT.
 - Platinum: `github.com/platinummonkey/go-concurrency-limits` v1.0.0,
   Apache-2.0.
 
 Their module content checksums and transitive dependency checksums are pinned in
 `go.sum`; their public APIs are invoked directly rather than copied.
+
+Checked-in comparison results retain their original dependency fingerprints;
+updating the harness dependencies does not update those historical measurements.
