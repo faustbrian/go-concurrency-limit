@@ -2,7 +2,15 @@
 
 ## Unreleased
 
+## 1.1.0 - 2026-10-03
+
 ### Changed
+
+- Raise the minimum Go version from 1.26.6 to 1.27.0. Consumers must
+  upgrade their Go toolchain and CI images before adopting this release.
+  The public limiter API and production implementation remain unchanged.
+- Update dependencies in the non-releasable comparison and resilience
+  integration modules while preserving recorded benchmark measurements.
 
 - Migrate the non-releasable resilience integration harness to Retry v1.1.0's
   strict policy and execution contracts with explicit known outcomes for its
