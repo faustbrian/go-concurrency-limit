@@ -13,6 +13,13 @@ import (
 func TestExecuteClassifiesResultsAndExcludesQueueWait(t *testing.T) {
 	t.Parallel()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	var executions sync.WaitGroup
+	defer func() {
+		cancel()
+		executions.Wait()
+	}()
+
 	clock := &manualClock{now: time.Unix(0, 0)}
 	var mu sync.Mutex
 	var classified time.Duration
@@ -30,13 +37,15 @@ func TestExecuteClassifiesResultsAndExcludesQueueWait(t *testing.T) {
 	if err != nil {
 		t.Fatalf("New() error = %v", err)
 	}
-	first, err := limiter.Acquire(context.Background())
-	if err != nil {
-		t.Fatalf("Acquire() error = %v", err)
+	first, err := limiter.Acquire(ctx)
+	if err != nil || first == nil {
+		t.Fatalf("initial admission = permit %v, error %v", first, err)
 	}
 	result := make(chan error, 1)
+	executions.Add(1)
 	go func() {
-		value, executeErr := concurrencylimit.Execute(context.Background(), limiter, func(context.Context) (int, error) {
+		defer executions.Done()
+		value, executeErr := concurrencylimit.Execute(ctx, limiter, func(context.Context) (int, error) {
 			clock.Advance(10 * time.Millisecond)
 			return 42, nil
 		})
@@ -50,14 +59,22 @@ func TestExecuteClassifiesResultsAndExcludesQueueWait(t *testing.T) {
 	if err = first.Complete(concurrencylimit.OutcomeSuccess); err != nil {
 		t.Fatalf("Complete() error = %v", err)
 	}
-	if err = <-result; err != nil {
-		t.Fatalf("Execute() error = %v", err)
+	select {
+	case err = <-result:
+		if err != nil {
+			t.Fatalf("Execute() error = %v", err)
+		}
+	case <-ctx.Done():
+		t.Fatalf("Execute() did not finish: %v", ctx.Err())
 	}
 	mu.Lock()
 	duration := classified
 	mu.Unlock()
 	if duration != 10*time.Millisecond {
 		t.Fatalf("classifier duration = %s, want execution-only 10ms", duration)
+	}
+	if snapshot := limiter.Snapshot(); snapshot.InFlight != 0 || snapshot.Queued != 0 {
+		t.Fatalf("completed execution retained capacity: %+v", snapshot)
 	}
 }
 
