@@ -13,6 +13,13 @@ import (
 func TestFIFOAdmissionPreventsStarvationAcrossMetadataAndDurations(t *testing.T) {
 	t.Parallel()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	var acquisitions sync.WaitGroup
+	defer func() {
+		cancel()
+		acquisitions.Wait()
+	}()
+
 	clock := &manualClock{now: time.Unix(0, 0)}
 	limiter, err := concurrencylimit.New(concurrencylimit.Config{
 		MinLimit: 1, MaxLimit: 1, InitialLimit: 1,
@@ -25,9 +32,9 @@ func TestFIFOAdmissionPreventsStarvationAcrossMetadataAndDurations(t *testing.T)
 	if err != nil {
 		t.Fatal(err)
 	}
-	active, err := limiter.Acquire(context.Background())
-	if err != nil {
-		t.Fatal(err)
+	active, err := limiter.Acquire(ctx)
+	if err != nil || active == nil {
+		t.Fatalf("initial admission = permit %v, error %v", active, err)
 	}
 
 	type admission struct {
@@ -43,8 +50,10 @@ func TestFIFOAdmissionPreventsStarvationAcrossMetadataAndDurations(t *testing.T)
 		if index%2 == 1 {
 			metadata.Partition = "batch"
 		}
+		acquisitions.Add(1)
 		go func() {
-			permit, acquireErr := limiter.Acquire(context.Background(), metadata)
+			defer acquisitions.Done()
+			permit, acquireErr := limiter.Acquire(ctx, metadata)
 			results[index] <- admission{index: index, permit: permit, err: acquireErr}
 		}()
 		waitForQueued(t, limiter, index+1)
