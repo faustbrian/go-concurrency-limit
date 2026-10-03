@@ -22,7 +22,7 @@ against the other candidates before replacing this record.
 
 ## Go implementations
 
-- Failsafe-Go: `github.com/failsafe-go/failsafe-go` v0.9.7, MIT.
+- Failsafe-Go: `github.com/failsafe-go/failsafe-go` v0.9.8, MIT.
 - Platinum: `github.com/platinummonkey/go-concurrency-limits` v1.0.1,
   Apache-2.0.
 

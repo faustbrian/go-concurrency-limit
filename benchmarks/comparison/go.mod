@@ -3,7 +3,7 @@ module github.com/faustbrian/go-concurrency-limit/benchmarks/comparison
 go 1.27.0
 
 require (
-	github.com/failsafe-go/failsafe-go v0.9.7
+	github.com/failsafe-go/failsafe-go v0.9.8
 	github.com/faustbrian/go-concurrency-limit v1.0.0
 	github.com/platinummonkey/go-concurrency-limits v1.0.1
 )
