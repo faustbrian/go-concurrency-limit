@@ -3,6 +3,7 @@ package concurrencylimit_test
 import (
 	"context"
 	"errors"
+	"sync"
 	"testing"
 	"time"
 
@@ -46,15 +47,24 @@ func TestPodScaleUpStartsIndependentColdStateAndRollingAlgorithmsCanMix(t *testi
 func TestScaleDownDrainReleasesQueueAndAbruptReplacementStartsCold(t *testing.T) {
 	t.Parallel()
 
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	var acquisitions sync.WaitGroup
+	defer func() {
+		cancel()
+		acquisitions.Wait()
+	}()
+
 	oldPod := newFixedLimiter(t, 1, concurrencylimit.QueueConfig{MaxQueued: 2, MaxWait: time.Hour})
-	active, err := oldPod.Acquire(context.Background())
-	if err != nil {
-		t.Fatal(err)
+	active, err := oldPod.Acquire(ctx)
+	if err != nil || active == nil {
+		t.Fatalf("initial admission = permit %v, error %v", active, err)
 	}
 	queued := make(chan error, 2)
 	for range 2 {
+		acquisitions.Add(1)
 		go func() {
-			_, acquireErr := oldPod.Acquire(context.Background())
+			defer acquisitions.Done()
+			_, acquireErr := oldPod.Acquire(ctx)
 			queued <- acquireErr
 		}()
 	}
@@ -78,7 +88,7 @@ func TestScaleDownDrainReleasesQueueAndAbruptReplacementStartsCold(t *testing.T)
 	}
 
 	abruptPod := newFixedLimiter(t, 1, concurrencylimit.QueueConfig{})
-	abandoned, err := abruptPod.Acquire(context.Background())
+	abandoned, err := abruptPod.Acquire(ctx)
 	if err != nil {
 		t.Fatal(err)
 	}
