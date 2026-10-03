@@ -20,6 +20,22 @@ func TestConcurrentAcquireCompleteSnapshotAndResetRemainBounded(t *testing.T) {
 		t.Fatal(err)
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
+	permit, err := limiter.Acquire(ctx)
+	cancel()
+	if err != nil || permit == nil {
+		t.Fatalf("uncontended admission = permit %v, error %v", permit, err)
+	}
+	if snapshot := limiter.Snapshot(); snapshot.InFlight != 1 || snapshot.Queued != 0 {
+		t.Fatalf("uncontended admission state = %+v", snapshot)
+	}
+	if err = permit.Complete(concurrencylimit.OutcomeIgnored); err != nil {
+		t.Fatal(err)
+	}
+	if snapshot := limiter.Snapshot(); snapshot.InFlight != 0 || snapshot.Queued != 0 || snapshot.Samples != 0 {
+		t.Fatalf("uncontended completion state = %+v", snapshot)
+	}
+
 	const workers = 32
 	var wait sync.WaitGroup
 	wait.Add(workers)

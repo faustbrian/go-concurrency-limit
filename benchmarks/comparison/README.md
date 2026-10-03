@@ -9,7 +9,7 @@ The candidates are:
 - Netflix `concurrency-limits` commit
   `78a74b9878d38c4c048b0304ce12a162ab7b7222`, represented by a transparent Go
   port of its `Gradient2Limit` update equation;
-- Failsafe-Go adaptive limiter v0.9.6 through its public permit API; and
+- Failsafe-Go adaptive limiter v0.9.7 through its public permit API; and
 - `platinummonkey/go-concurrency-limits` v1.0.0 through its public Gradient2
   API.
 
@@ -26,7 +26,8 @@ port as JVM performance.
 Pinned source and license details are in [PROVENANCE.md](PROVENANCE.md) and
 [THIRD_PARTY_LICENSES.md](THIRD_PARTY_LICENSES.md). Checked-in metrics, raw
 benchmarks, convergence data, and per-workload plots are under
-[results](results/README.md).
+[results](results/README.md). Those historical results retain their recorded
+dependency versions and are not new measurements of the current harness.
 
 Run from the repository workspace with:
 
