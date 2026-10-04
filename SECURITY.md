@@ -32,3 +32,7 @@ labels.
 The module has no network, storage, unsafe, cgo, reflection-based wiring, or
 background-worker dependency. Supply-chain verification is performed by the
 repository vulnerability, license, SBOM, secret, and clean-consumer gates.
+
+The repository [security threat model and risk register](docs/security.md)
+defines the supported boundary, controls, accepted risks, and review
+conditions.
