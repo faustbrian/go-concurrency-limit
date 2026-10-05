@@ -285,7 +285,7 @@ func (limiter *Limiter) ReapExpired() int {
 	limiter.mu.Lock()
 	before := limiter.expiredPermits
 	events := limiter.reapExpiredLocked(now)
-	reaped := int(limiter.expiredPermits - before)
+	reaped := int(limiter.expiredPermits - before) // #nosec G115 -- Holding mu keeps the saturating counter delta nonnegative and bounded by entry permits <= MaxLimit (1<<30), which fits 32-bit int; queued grants follow the single reap pass.
 	limiter.mu.Unlock()
 	limiter.dispatch(events)
 	return reaped

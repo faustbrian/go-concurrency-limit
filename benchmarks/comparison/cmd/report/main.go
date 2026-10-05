@@ -4,11 +4,11 @@ package main
 
 import (
 	"encoding/csv"
+	"errors"
 	"fmt"
 	"math"
 	"math/rand"
 	"os"
-	"path/filepath"
 	"slices"
 	"strconv"
 	"strings"
@@ -62,9 +62,29 @@ func main() {
 	} else if len(os.Args) > 2 {
 		fatalf("usage: report [output-directory]")
 	}
-	if err := os.MkdirAll(output, 0o755); err != nil {
-		fatalf("create output: %v", err)
+	if err := generateReports(output); err != nil {
+		fatalf("%v", err)
 	}
+}
+
+func openOutputRoot(output string) (*os.Root, error) {
+	if err := os.MkdirAll(output, 0o700); err != nil { // #nosec G703 -- The operator explicitly selects this output root, never a request input; report children are confined by os.Root.
+		return nil, err
+	}
+	return os.OpenRoot(output)
+}
+
+// Return through this owner before main exits so every path closes the root.
+func generateReports(output string) (err error) {
+	root, err := openOutputRoot(output)
+	if err != nil {
+		return fmt.Errorf("create output: %w", err)
+	}
+	defer func() {
+		if closeErr := root.Close(); closeErr != nil {
+			err = errors.Join(err, closeErr)
+		}
+	}()
 
 	workloads := campaigns()
 	results := make([]result, 0, len(workloads)*4)
@@ -73,17 +93,18 @@ func main() {
 			results = append(results, run(candidate, implementation))
 		}
 	}
-	if err := writeCSV(filepath.Join(output, "metrics.csv"), results); err != nil {
-		fatalf("write metrics: %v", err)
+	if err := writeCSV(root, "metrics.csv", results); err != nil {
+		return fmt.Errorf("write metrics: %w", err)
 	}
-	if err := writeTraceCSV(filepath.Join(output, "convergence.csv"), results); err != nil {
-		fatalf("write convergence: %v", err)
+	if err := writeTraceCSV(root, "convergence.csv", results); err != nil {
+		return fmt.Errorf("write convergence: %w", err)
 	}
 	for _, candidate := range workloads {
-		if err := writeSVG(filepath.Join(output, "convergence-"+candidate.name+".svg"), candidate.name, results); err != nil {
-			fatalf("write %s plot: %v", candidate.name, err)
+		if err := writeSVG(root, "convergence-"+candidate.name+".svg", candidate.name, results); err != nil {
+			return fmt.Errorf("write %s plot: %w", candidate.name, err)
 		}
 	}
+	return nil
 }
 
 func campaigns() []workload {
@@ -101,7 +122,7 @@ func campaigns() []workload {
 }
 
 func run(candidate workload, implementation driver) result {
-	random := rand.New(rand.NewSource(candidate.seed))
+	random := rand.New(rand.NewSource(candidate.seed)) // #nosec G404 -- Fixed seeds reproduce synthetic benchmark workloads; this randomness has no security-sensitive purpose.
 	measurement := result{
 		workload: candidate.name, implementation: implementation.name(),
 		limits: make([]int, 0, candidate.windows), capacityTrace: make([]int, 0, candidate.windows),
@@ -298,8 +319,24 @@ func finishFailsafeAggregate(permits []adaptivelimiter.Permit) {
 	}
 }
 
-func writeCSV(path string, results []result) error {
-	file, err := os.Create(path)
+// Open without truncating, then make even existing report files private before
+// changing their contents. File.Chmod acts on the confined opened handle.
+func openReportFile(root *os.Root, name string) (*os.File, error) {
+	file, err := root.OpenFile(name, os.O_WRONLY|os.O_CREATE, 0o600)
+	if err != nil {
+		return nil, err
+	}
+	if err := file.Chmod(0o600); err != nil {
+		return nil, errors.Join(err, file.Close())
+	}
+	if err := file.Truncate(0); err != nil {
+		return nil, errors.Join(err, file.Close())
+	}
+	return file, nil
+}
+
+func writeCSV(root *os.Root, name string, results []result) error {
+	file, err := openReportFile(root, name)
 	if err != nil {
 		return err
 	}
@@ -328,8 +365,8 @@ func writeCSV(path string, results []result) error {
 	return finishCSV(file, writer)
 }
 
-func writeTraceCSV(path string, results []result) error {
-	file, err := os.Create(path)
+func writeTraceCSV(root *os.Root, name string, results []result) error {
+	file, err := openReportFile(root, name)
 	if err != nil {
 		return err
 	}
@@ -361,7 +398,7 @@ func finishCSV(file *os.File, writer *csv.Writer) error {
 	return file.Close()
 }
 
-func writeSVG(path, workloadName string, results []result) error {
+func writeSVG(root *os.Root, name, workloadName string, results []result) error {
 	const width, height = 960, 540
 	var selected []result
 	for _, measurement := range results {
@@ -413,7 +450,14 @@ func writeSVG(path, workloadName string, results []result) error {
 		legendY += 20
 	}
 	body.WriteString(`<text x="475" y="515" font-family="sans-serif" font-size="13">window</text><text x="16" y="280" transform="rotate(-90 16 280)" font-family="sans-serif" font-size="13">limit</text></svg>`)
-	return os.WriteFile(path, []byte(body.String()), 0o644)
+	file, err := openReportFile(root, name)
+	if err != nil {
+		return err
+	}
+	if _, err := file.WriteString(body.String()); err != nil {
+		return errors.Join(err, file.Close())
+	}
+	return file.Close()
 }
 
 func percentileMillis(values []time.Duration, quantile float64) float64 {
