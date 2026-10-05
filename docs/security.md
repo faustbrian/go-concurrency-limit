@@ -70,7 +70,7 @@ condition. Severity describes impact under the documented trust assumptions.
 | CL-SEC-006 | A classifier, observer, clock, or timer blocks, leaks data, races, or performs unbounded work. | Medium | Accepted trusted-callback boundary | Integrators own callback provenance, synchronization, liveness, and emitted labels. Maintainers invoke classifier and observer callbacks outside the state lock, contain panics, validate timer channels, and retain no callback inputs. Review third-party callbacks, callback contract changes, or sustained safety counters. |
 | CL-SEC-007 | Callback or operation panic corrupts admission state or leaks a secret panic value. | Medium | Mitigated for limiter integrity; disclosure remains caller-owned | Maintainers release the permit and contain classifier/observer/clock panics. Operation panics deliberately re-panic the original value so application panic policy remains observable; callers must recover and redact at their trust boundary. Review panic handling or diagnostic policy changes. |
 | CL-SEC-008 | Clock rollback, panic, or invalid timers strand queue entries or poison learning. | Medium | Mitigated | Maintainers reject invalid timers, normalize negative elapsed time, stop timers, release or reject affected work, avoid invalid learning, and count failures. Fault and concurrency tests exercise these paths. Review clock abstraction or queue timing changes. |
-| CL-SEC-009 | Permit reuse, reset races, expiry races, or identifier exhaustion corrupts in-flight accounting. | High | Mitigated | Maintainers own atomic one-shot completion, generation-bound permit state, locked accounting, stale-permit errors, saturating counters, and explicit identifier exhaustion. Race and lifecycle tests cover completion, reset, drain, queue cancellation, and reaping. Review permit identity or lifecycle changes. |
+| CL-SEC-009 | Permit reuse, reset races, expiry races, or identifier exhaustion corrupts in-flight accounting. | High | Mitigated | Maintainers own atomic one-shot completion, generation-bound permit state, locked accounting, stale-permit errors, saturating counters, and explicit identifier exhaustion. Race and lifecycle tests cover completion, reset, drain, queue cancellation, and reaping. The rule-specific G115 annotation in `ReapExpired` relies on the bounded locked counter delta described below. Review permit identity, lifecycle locking, admission limits, counter saturation, or reap iteration and queued-grant ordering changes. |
 | CL-SEC-010 | Malformed adaptive state causes overflow, NaN propagation, extreme allocation, or unstable limits. | High | Mitigated | Maintainers seal algorithms to the package, validate finite configuration/state, cap retained samples, use overflow-safe step arithmetic, and clamp every decision. Review algorithm equations, sample retention, or public bounds. |
 | CL-SEC-011 | Events or snapshots disclose operation results, errors, contexts, secrets, request bodies, or unbounded labels. | Medium | Mitigated in package scope | Maintainers expose bounded value-only events and snapshots. Integrators must keep configured partition names and observer-added metric labels non-sensitive and low-cardinality. Review event, snapshot, or metadata field additions. |
 | CL-SEC-012 | Vulnerable dependencies, unsafe runtime escape, or mutable automation weakens isolation. | Medium | Mitigated subject to current gates | Maintainers own checksum-pinned dependencies, immutable workflow references, vulnerability and license analysis, secret scanning, and safety checks. Review every dependency, action, toolchain, suppression, or scanner finding. |
@@ -79,6 +79,19 @@ There are no known Critical or High findings in this model. The accepted
 Medium deployment and composition risks require trusted application policy;
 attacker-controlled admission cannot raise configured bounds, invoke rejected
 work, or cause the limiter itself to retry.
+
+The `ReapExpired` G115 annotation is limited to converting its lifetime-counter
+delta to `int`, not the full `uint64` counter. The state mutex remains held from
+the before snapshot through conversion, excluding reset or concurrent counter
+changes. Saturating increments cannot wrap or decrease the counter; one reap
+pass removes each entry permit at most once, and queued grants occur afterward.
+Admission and adaptation bound active permits by `MaxLimit` (`1<<30`), so the
+delta is nonnegative and no larger than that bound, safely below signed 32-bit
+maximum and therefore representable on both 32- and 64-bit platforms.
+Maintainers must reassess this exact-rule suppression if locking, the admission
+cap, saturation semantics, reap iteration, or grant ordering changes. This is
+a representability disposition, not a broad scanner waiver or a new guarantee
+that the saturated lifetime counter counts every expiration.
 
 ## Compatibility, consumers, and release disposition
 
