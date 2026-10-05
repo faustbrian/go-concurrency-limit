@@ -90,7 +90,7 @@ delta is nonnegative and no larger than that bound, safely below signed 32-bit
 maximum and therefore representable on both 32- and 64-bit platforms.
 Maintainers must reassess this exact-rule suppression if locking, the admission
 cap, saturation semantics, reap iteration, or grant ordering changes. This is
-a representability disposition, not a broad scanner waiver or a new guarantee
+a conversion-range decision, not a broad scanner waiver or a new guarantee
 that the saturated lifetime counter counts every expiration.
 
 ## Compatibility, consumers, and release disposition
