@@ -10,8 +10,8 @@ github.com/failsafe-go/failsafe-go v0.9.8 h1:NzahTEc+vg6FqCJV0Sy9mgwcaCemB81c8iS
 github.com/failsafe-go/failsafe-go v0.9.8/go.mod h1:wMKUFRbxxjWwvwhJttSiim9BaQssrlZV4lk0IwPkwUc=
 github.com/faustbrian/go-concurrency-limit v1.0.0 h1:7YXJz1vSlO+EMvh/vtvj+aYKHC+tOB1cGbcLSVUI9LQ=
 github.com/faustbrian/go-concurrency-limit v1.0.0/go.mod h1:q3dIb4dYxXlr/aDOp87ZRBIRXg57wsK95qcC74P2I5A=
-github.com/faustbrian/go-hedge v1.0.1 h1:Xki4qqftTznFLTU2ohq1hexPhP7pvkl7ddSvn6WjLXI=
-github.com/faustbrian/go-hedge v1.0.1/go.mod h1:2/FjE3hCRjewRU+70AXIQ5BJAWmYmZgMy4NDtHJ6m28=
+github.com/faustbrian/go-hedge v1.0.3 h1:rXWcvaqdRZAwCMsFt/v5gVZhL6u5HccXR3KhpRaH+Rw=
+github.com/faustbrian/go-hedge v1.0.3/go.mod h1:2/FjE3hCRjewRU+70AXIQ5BJAWmYmZgMy4NDtHJ6m28=
 github.com/faustbrian/go-resilience v1.0.0 h1:QLeIh9xvcc5XJ3ANGjk8P7BCbuNFNOWoXkHJdIZJOWM=
 github.com/faustbrian/go-resilience v1.0.0/go.mod h1:Mae7tmxMXqaSjuOyhIK8Jjq36oBE64+KOvIaLYh2dp8=
 github.com/faustbrian/go-retry v1.1.0 h1:Ntx3l2eQBdiFr4uiWIDDD7mGASCaOs8+LW+eFtT20tY=
