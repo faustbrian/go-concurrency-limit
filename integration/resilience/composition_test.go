@@ -10,8 +10,8 @@ import (
 
 	concurrencylimit "github.com/faustbrian/go-concurrency-limit"
 	"github.com/faustbrian/go-hedge"
-	"github.com/faustbrian/go-resilience"
-	"github.com/faustbrian/go-retry"
+	"github.com/faustbrian/go-resilience/v2"
+	"github.com/faustbrian/go-retry/v2"
 )
 
 func TestRetryAndHedgeConsumeOneSharedAmplificationBudget(t *testing.T) {
@@ -19,6 +19,7 @@ func TestRetryAndHedgeConsumeOneSharedAmplificationBudget(t *testing.T) {
 
 	budget, err := resilience.NewBudget(resilience.BudgetConfig{
 		MaxResources:              1,
+		MaxScopes:                 1,
 		MaxAdditionalPerExecution: 3,
 		MaxConcurrentAdditional:   3,
 		MaxAdditionalPerWindow:    3,
@@ -37,6 +38,7 @@ func TestRetryAndHedgeConsumeOneSharedAmplificationBudget(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
+	t.Cleanup(func() { _ = scope.Close() })
 	retryPolicy, err := retry.NewPolicyStrict(retry.Config{
 		Backoff: retry.Constant(0), MaxAttempts: 2,
 		Clock: retry.SystemClock{}, Sleeper: retry.SystemSleeper{},
@@ -64,11 +66,22 @@ func TestRetryAndHedgeConsumeOneSharedAmplificationBudget(t *testing.T) {
 	firstHedgeStarted := make(chan struct{})
 	var firstHedgeSignal sync.Once
 	var secondReport hedge.Report
+	var lineageMu sync.Mutex
+	lineage := make(map[uint64]resilience.Attempt)
+	var lineageErr error
 	retryResult, executeErr := retry.DoStrict(ctx, retryPolicy, func(ctx context.Context) (retry.AttemptResult[string], error) {
 		invocation := invocations.Add(1)
 		value, report, hedgeErr := hedge.Do(ctx, hedgePolicy, hedge.AttemptFactoryFunc[string](func(info hedge.AttemptInfo) (hedge.Attempt[string], string, error) {
-			return func(context.Context) (string, error) {
+			return func(attemptCtx context.Context) (string, error) {
 				physical.Add(1)
+				attempt, attached := resilience.AttemptFromContext(attemptCtx)
+				lineageMu.Lock()
+				if _, duplicate := lineage[attempt.Ordinal]; !attached || duplicate {
+					lineageErr = errors.New("missing or duplicate physical-attempt lineage")
+				} else {
+					lineage[attempt.Ordinal] = attempt
+				}
+				lineageMu.Unlock()
 				if invocation == 1 && !info.Hedge {
 					<-firstHedgeStarted
 				}
@@ -98,6 +111,117 @@ func TestRetryAndHedgeConsumeOneSharedAmplificationBudget(t *testing.T) {
 	}
 	if snapshot := scope.Snapshot(); snapshot.AdditionalAdmitted != 3 || snapshot.AdditionalActive != 0 {
 		t.Fatalf("snapshot = %+v", snapshot)
+	}
+	if lineageErr != nil || len(lineage) != 4 {
+		t.Fatalf("lineage count = %d, error = %v", len(lineage), lineageErr)
+	}
+	for ordinal, want := range map[uint64]struct {
+		origin resilience.AttemptOrigin
+		parent uint64
+	}{
+		1: {resilience.OriginOriginal, 0},
+		2: {resilience.OriginHedge, 1},
+		3: {resilience.OriginHedge, 1},
+		4: {resilience.OriginRetry, 1},
+	} {
+		if attempt := lineage[ordinal]; attempt.Origin != want.origin || attempt.ParentOrdinal != want.parent {
+			t.Fatalf("attempt %d = %+v, want origin %s parent %d", ordinal, attempt, want.origin, want.parent)
+		}
+	}
+	if err := scope.Close(); err != nil || !scope.Snapshot().Closed {
+		t.Fatalf("scope close = %v, snapshot = %+v", err, scope.Snapshot())
+	}
+}
+
+func TestRetryAndHedgeBorrowAnOuterAttemptWithoutCompletingItsPermit(t *testing.T) {
+	clock := retry.SystemClock{}
+	budget, err := resilience.NewBudget(resilience.BudgetConfig{
+		MaxResources: 1, MaxScopes: 1, MaxAdditionalPerExecution: 1,
+		MaxConcurrentAdditional: 1, MaxAdditionalPerWindow: 1,
+		AdditionalWindow: time.Minute, PermitTTL: time.Minute, Clock: clock,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	metadata, err := resilience.NewMetadata("borrowed", "lookup", "dependency")
+	if err != nil {
+		t.Fatal(err)
+	}
+	scope, ctx, err := budget.Start(context.Background(), metadata)
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = scope.Close() })
+	_, original, originalPermit, err := resilience.AdmitAttempt(ctx, resilience.OriginOriginal, 0, clock.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	if err := originalPermit.Complete(); err != nil {
+		t.Fatal(err)
+	}
+	borrowedCtx, outer, outerPermit, err := resilience.AdmitAttempt(ctx, resilience.OriginRetry, original.Ordinal, clock.Now())
+	if err != nil {
+		t.Fatal(err)
+	}
+	t.Cleanup(func() { _ = outerPermit.Complete() })
+	retryPolicy, err := retry.NewPolicyStrict(retry.Config{
+		Backoff: retry.Constant(0), MaxAttempts: 2, Clock: clock,
+		Sleeper: retry.SystemSleeper{}, Classifier: retry.RetryableClassifier(), UseResilienceBudget: true,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	hedgePolicy, err := hedge.NewPolicy(hedge.Config[string]{
+		MaxHedges: 1, ReplaySafe: true, Delay: time.Hour,
+		TotalTimeout: time.Second, CleanupTimeout: time.Second,
+		Clock: hedge.RealClock{}, UseResilienceBudget: true, Resource: "dependency",
+		Classifier: hedge.ClassifyFunc[string](func(_ context.Context, result hedge.AttemptResult[string]) (hedge.Classification, error) {
+			if result.Err == nil {
+				return hedge.ClassificationSuccess, nil
+			}
+			return hedge.ClassificationFailure, nil
+		}),
+		Disposer:           hedge.DisposeFunc[string](func(context.Context, string) error { return nil }),
+		FactoryFailureMode: hedge.FactoryFailureStop,
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	var report hedge.Report
+	result, executeErr := retry.DoStrict(borrowedCtx, retryPolicy, func(ctx context.Context) (retry.AttemptResult[string], error) {
+		attempt, ok := resilience.AttemptFromContext(ctx)
+		if !ok || attempt != outer {
+			return retry.AttemptResult[string]{Outcome: retry.OutcomeKnown}, errors.New("retry changed borrowed lineage")
+		}
+		value, innerReport, hedgeErr := hedge.Do(ctx, hedgePolicy, hedge.AttemptFactoryFunc[string](func(hedge.AttemptInfo) (hedge.Attempt[string], string, error) {
+			return func(ctx context.Context) (string, error) {
+				attempt, ok := resilience.AttemptFromContext(ctx)
+				if !ok || attempt != outer {
+					return "", errors.New("hedge changed borrowed lineage")
+				}
+				return "healthy", nil
+			}, "dependency", nil
+		}))
+		report = innerReport
+		return retry.AttemptResult[string]{Value: value, Outcome: retry.OutcomeKnown}, hedgeErr
+	})
+	if executeErr != nil || result.Value != "healthy" || result.Outcome != retry.OutcomeKnown || result.Retry.Attempts != 1 {
+		t.Fatalf("borrowed execution = %+v, error = %v", result, executeErr)
+	}
+	if err := report.Wait(context.Background()); err != nil {
+		t.Fatal(err)
+	}
+	if report.AttemptsStarted != 1 || report.HedgesStarted != 0 || report.BudgetDenied != 0 {
+		t.Fatalf("borrowed hedge report = %+v", report)
+	}
+	if snapshot := scope.Snapshot(); snapshot.AdditionalAdmitted != 1 || snapshot.AdditionalActive != 1 {
+		t.Fatalf("outer permit ownership changed: %+v", snapshot)
+	}
+	if err := outerPermit.Complete(); err != nil || scope.Snapshot().AdditionalActive != 0 {
+		t.Fatalf("outer completion = %v, snapshot = %+v", err, scope.Snapshot())
+	}
+	if err := scope.Close(); err != nil || !scope.Snapshot().Closed {
+		t.Fatalf("scope close = %v, snapshot = %+v", err, scope.Snapshot())
 	}
 }
 
