@@ -2,6 +2,19 @@
 
 ## Unreleased
 
+## 1.1.1 - 2026-10-06
+
+### Changed
+
+- Refresh immutable CI and documentation-parser dependencies without changing
+  the root limiter API, runtime behavior, or supported Go toolchain.
+- Maintain the non-releasable composition harness with Resilience v2 and
+  Retry v2 while retaining the executors' separate legacy Resilience v1.1
+  dependency. Historical benchmark results remain unchanged.
+- Confine non-releasable benchmark report output to descriptor-owned paths,
+  with private Unix report files and newly created directories. Existing
+  directory permissions and Windows filesystem ACLs remain caller-owned.
+
 ## 1.1.0 - 2026-10-03
 
 ### Changed
