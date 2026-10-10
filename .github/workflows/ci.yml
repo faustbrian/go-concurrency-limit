@@ -26,9 +26,11 @@ permissions:
 jobs:
   ci:
     if: github.event_name != 'workflow_dispatch' || !inputs.security_diagnostic
-    uses: faustbrian/go-library-tools/.github/workflows/library-ci.yml@be0fd7d09b02c9dff29e6b00a5245ceac3cdfdfb # v1.4.0 W14 enforcement
+    uses: faustbrian/go-library-tools/.github/workflows/library-ci.yml@f173deb9a9b501c85137a00fa9cccd5287f8cc26 # v2.0.0 patched documentation tooling
     with:
-      tooling_sha: 531e4db50fd81a7201257a7b488a0cf22d333aca
+      tooling_sha: f173deb9a9b501c85137a00fa9cccd5287f8cc26
+      source_bootstrap: true
+      public_dependencies: true
       release_dry_run: ${{ inputs.release_dry_run || false }}
 
   security-diagnostic:
