@@ -19,6 +19,15 @@ api:
     path: api/baseline.txt
 operations:
 - module: "."
+  gate: local-test
+  steps:
+  - type: go-test
+    packages: ["."]
+    run: '^Test(ConcurrentAcquireCompleteSnapshotAndResetRemainBounded|CanceledWaitersTerminateWithoutBackgroundWorkers|QueueTimeoutCancellationResetDrainAndGrantRace)$'
+    race: true
+    count: 1
+    timeout: 2m
+- module: "."
   gate: docs
   steps:
   - type: make
