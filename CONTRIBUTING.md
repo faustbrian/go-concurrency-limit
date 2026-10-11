@@ -34,7 +34,7 @@ prerequisite. Investigate viable survivors and add focused regressions for real
 defects; moving a campaign off PRs does not waive a confirmed correctness or
 security defect. Equivalent/invalid mutants retain reviewed narrow dispositions.
 
-Do not add package-local workflows, permanent replacements, machine-specific
+Do not fork shared verification workflows, add permanent replacements, machine-specific
 paths, bypass flags, broad mutation exclusions, or aggregate quality metrics
 that hide a failing package.
 
@@ -55,6 +55,15 @@ in `.golib.yaml`; they do not run full mutation or stress campaigns. Documentati
 changes need relevant structure, links and examples, not unrelated runtime work.
 Public API, concurrency and external-boundary changes retain their affected
 compatibility, race or integration checks.
+
+Base-free local checks run fuzz seeds, not active exploration. The separate
+selected-assurance workflow runs on main every Wednesday at 03:41 UTC and
+rotates one declared root fuzz target for 30 seconds, checking finite bounded
+limit histories and single permit outcomes. An explicit manual diagnostic on
+main requires an exact selector from `.golib.yaml`; empty or unknown selections
+fail. The immutable shared runner bounds workers, CPU, memory, output and
+private-cache lifetime; failures stay attributable and fatal. This lane does
+not replace the full race matrix, retry/hedge composition or release contracts.
 
 For active exploration, select one fuzz target and a small budget; long campaigns
 belong in scheduled assurance. Optional local mutation selects one package with
