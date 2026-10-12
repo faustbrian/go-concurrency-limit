@@ -6,7 +6,7 @@ require (
 	github.com/faustbrian/go-concurrency-limit v1.0.0
 	github.com/faustbrian/go-hedge v1.1.0
 	github.com/faustbrian/go-resilience/v2 v2.0.0
-	github.com/faustbrian/go-retry/v2 v2.1.0
+	github.com/faustbrian/go-retry/v2 v2.1.1
 )
 
 require (
