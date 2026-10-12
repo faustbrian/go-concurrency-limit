@@ -33,7 +33,8 @@ after a terminal queue result.
 `Acquire(ctx, optionalMetadata...)` returns a `Permit` or a stable sentinel
 error. Supply at most one `Metadata`. `Permit.Complete` accepts exactly one
 valid `Outcome`; concurrent or later duplicate completion returns
-`ErrPermitCompleted`. An invalid outcome does not consume the permit. If the
+`ErrPermitCompleted` without joining the first completion. An invalid outcome
+does not consume the permit; a first stale/clock failure does consume it. If the
 completion clock fails, capacity and queued callers are released without a
 learning sample and completion returns `ErrClock`.
 The process-local permit identifier is monotonic and never wraps; after the
@@ -43,16 +44,25 @@ full `uint64` sequence is exhausted, admission returns
 `Execute` and `ExecuteWithMetadata` acquire, invoke once, classify, and
 complete. The default classifier maps a canceled context to ignored, a nil
 error to success, and another error to dependency failure. Configure a
-classifier to identify explicit overload. A classifier panic completes the
-permit as ignored and returns `ErrClassifierPanic`; an operation panic records
-dependency failure and re-panics the original value.
+classifier to identify explicit overload. A classifier panic attempts ignored
+completion and returns `ErrClassifierPanic`; an operation panic attempts
+dependency-failure completion and re-panics the original value. An admitted nil
+operation attempts local-drop completion and returns `ErrInvalidOutcome`.
+Reset/reap races can make these terminal attempts stale. Callback values, including
+partial values, remain caller-owned. Normally a callback error takes precedence
+over a completion error; classifier/clock faults have their explicit earlier
+error paths. Classifier duration is sampled before classification, while the
+learning completion duration also includes synchronous classifier time.
 
 ## Lifecycle and snapshots
 
 `BeginDrain` rejects new calls and releases queued calls. `ReapExpired`
-explicitly reclaims permits older than the TTL. `Reset` clears learned and
-aggregate state, increments the generation, invalidates active and queued
-permits, and restores the initial limit. Call reset only during a known
+reclaims accounting aged at least the TTL; admission also performs this reap.
+Neither reap nor reset stops protected work, so callers need a known execution
+lifetime and must not treat reclamation as hard isolation. `Reset` clears learned
+and outcome aggregates, retains identifier sequence and safety counters, advances
+generation identity, invalidates active/queued permits, reopens admission and
+restores the initial limit. Call reset only during a known
 lifecycle boundary or after drain.
 Reset and algorithm decision application are serialized, so a sampling window
 from the previous lifecycle cannot overwrite the restored cold-start state.

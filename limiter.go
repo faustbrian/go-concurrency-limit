@@ -9,10 +9,15 @@ import (
 	"time"
 )
 
-// Limiter admits work up to an adaptive process-local concurrency limit.
+// Limiter owns adaptive process-local permit accounting and is concurrency-safe.
+// Use New: nil/zero instances are invalid, and instances must not be copied.
+// No worker is started. TTL/reset may invalidate accounting without stopping
+// protected work, so this is not a hard bound on uncooperative live executions.
 type Limiter struct {
 	config normalizedConfig
 
+	// mu owns admission, queue, ring samples and counters. algorithmMu owns
+	// exclusive algorithm calls; when both are needed, acquire algorithmMu first.
 	mu          sync.Mutex
 	algorithmMu sync.Mutex
 	limit       int
@@ -49,6 +54,9 @@ type Limiter struct {
 	classifierPanics uint64
 }
 
+// waiter.result has one buffered publication and is never closed. mu transfers
+// queue-node ownership to exactly one grant/reset/drain/error route; cancellation
+// may consume and ignore a grant that was published before its select returned.
 type waiter struct {
 	metadata Metadata
 	result   chan acquireResult
@@ -66,9 +74,15 @@ type permitState struct {
 	metadata   Metadata
 }
 
+// A non-zero-sized identity remains distinct across resets even after the
+// public numeric generation saturates; zero-sized allocation identity is unsafe.
 type lifecycleGeneration byte
 
-// New validates config and constructs an independent process-local limiter.
+// New validates config, applies defaults and resets the exclusively owned
+// algorithm to InitialLimit. It copies Partitions but borrows other callbacks.
+// Invalid bounds, nil algorithm, lifecycle panic or invalid initial state wrap
+// ErrInvalidConfig. An algorithm failure does not roll back its mutable state.
+// It starts no worker and does not silently choose an algorithm.
 func New(config Config) (*Limiter, error) {
 	normalized, err := normalizeConfig(config)
 	if err != nil {
@@ -91,7 +105,17 @@ func New(config Config) (*Limiter, error) {
 }
 
 // Acquire admits immediately or waits in the bounded FIFO queue. At most one
-// Metadata value may be supplied.
+// Metadata value may be supplied; priority/partition are diagnostic only. A nil
+// context yields context.Canceled, pre-canceled contexts return their own error,
+// and invalid metadata yields ErrInvalidMetadata before clock/state admission.
+// Other failures distinguish limit/queue bounds, queue timeout, drain/reset,
+// clock failure and exhausted identifiers. No protected work is invoked.
+//
+// Admission first reaps TTL-expired accounting, without canceling old work.
+// A permit is caller-owned until valid completion/reap/reset; cancellation after
+// immediate admission does not automatically complete it. Queued cancellation
+// racing a published grant can consume/complete that grant as ignored and still
+// return the cancellation cause. Synchronous callbacks may delay return.
 func (limiter *Limiter) Acquire(ctx context.Context, optional ...Metadata) (*Permit, error) {
 	if ctx == nil {
 		return nil, context.Canceled
@@ -182,6 +206,8 @@ func (limiter *Limiter) cancelWaiter(wait *waiter, cause error) (*Permit, error)
 		return nil, cause
 	}
 	limiter.mu.Unlock()
+	// A terminal route already removed this node. If it published a grant, the
+	// canceled caller reclaims that permit; cause remains caller-visible.
 	select {
 	case result := <-wait.result:
 		if result.permit != nil {
@@ -213,8 +239,12 @@ func (limiter *Limiter) snapshotLocked() Snapshot {
 	}
 }
 
-// Reset invalidates all active and queued permits, clears learned state, and
-// returns to the configured initial policy for a new pod lifecycle generation.
+// Reset invalidates active/queued permits, resets learning/outcome aggregates and
+// drain state, and restores InitialLimit. It does not cancel/wait for old work;
+// use only at a known lifecycle boundary. Identifier sequence and clock, algorithm,
+// classifier and observer safety counters are retained. Numeric Generation saturates,
+// while internal identity stays fresh. Invalid algorithm reset/state is counted
+// and old diagnostics remain; admission still reopens at InitialLimit.
 func (limiter *Limiter) Reset() {
 	limiter.algorithmMu.Lock()
 	resetOK := safeAlgorithmReset(limiter.config.algorithm, limiter.config.initialLimit)
@@ -259,7 +289,9 @@ func (limiter *Limiter) Reset() {
 
 // BeginDrain rejects new admission and releases queued callers. Active permits
 // remain owned by callers and should complete as OutcomeIgnored when shutdown
-// cancellation is local.
+// cancellation is local. It does not cancel work, wait for completion or reap
+// immediately; Reset reopens admission. Repeated calls may emit repeated drain
+// events, and synchronous observation can delay return.
 func (limiter *Limiter) BeginDrain() {
 	limiter.mu.Lock()
 	before := limiter.snapshotLocked()
@@ -274,8 +306,12 @@ func (limiter *Limiter) BeginDrain() {
 	limiter.dispatch([]Event{{Type: EventDrainStarted, Before: before, After: after}})
 }
 
-// ReapExpired invalidates permits older than PermitTTL and admits queued work.
-// It provides explicit bounded abandoned-permit handling without background goroutines.
+// ReapExpired invalidates accounting aged at least PermitTTL and grants eligible
+// queued work, unless draining. It returns the saturating counter increment, which
+// can be zero once ExpiredPermits saturates despite reclaimed entries. Acquire
+// also reaps automatically. Reaping records ignored outcomes, not learning or
+// cancellation of protected work; choose TTL beyond a known execution bound.
+// Clock failure is counted and returns zero without reaping. No worker is started.
 func (limiter *Limiter) ReapExpired() int {
 	now, ok := safeNow(limiter.config.clock)
 	if !ok {
@@ -406,6 +442,8 @@ func (limiter *Limiter) addSampleLocked(now time.Time, duration time.Duration, o
 	if len(limiter.recent) < limiter.config.sampling.MinSamples || elapsed < limiter.config.sampling.MinDuration || limiter.adapting {
 		return nil
 	}
+	// Sort a copy so the replacement ring stays in arrival order. Quantile and
+	// throughput use retained count, while outcome totals can include overwritten samples.
 	values := append([]time.Duration(nil), limiter.recent...)
 	slices.Sort(values)
 	rank := int(math.Ceil(limiter.config.sampling.Quantile*float64(len(values)))) - 1
@@ -439,6 +477,8 @@ func (limiter *Limiter) addSampleLocked(now time.Time, duration time.Duration, o
 
 func (limiter *Limiter) applyWindow(window Window, now time.Time) []Event {
 	limiter.algorithmMu.Lock()
+	// Reset owns algorithmMu too, so reject stale windows before mutating the
+	// algorithm. A saturating numeric generation alone cannot establish freshness.
 	if window.generationToken != nil && window.generationToken != limiter.generationToken {
 		limiter.algorithmMu.Unlock()
 		return nil

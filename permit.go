@@ -6,7 +6,9 @@ import (
 )
 
 // Permit owns exactly one admitted execution and must receive one terminal
-// outcome. Complete is safe for concurrent duplicate calls.
+// outcome. Complete supports concurrent calls, but duplicate results do not join
+// the first completion. Nil/zero permits are invalid; do not copy a permit.
+// Reap/reset invalidate accounting even if protected work is still running.
 type Permit struct {
 	limiter    *Limiter
 	id         uint64
@@ -19,7 +21,13 @@ type Permit struct {
 // Metadata returns the bounded value copied at admission.
 func (permit *Permit) Metadata() Metadata { return permit.metadata }
 
-// Complete records the first valid terminal outcome and releases capacity.
+// Complete consumes the first valid terminal attempt and releases accounted
+// capacity if the permit is still live. Invalid outcomes yield ErrInvalidOutcome
+// without consuming it; duplicates yield ErrPermitCompleted. A first stale result
+// yields ErrStalePermit, while clock failure on a live permit releases capacity,
+// rejects queued callers, records the outcome without learning and yields ErrClock.
+// The CAS is consumed even on those errors; retry is not a second completion.
+// Observer/algorithm work is synchronous and can delay return.
 func (permit *Permit) Complete(outcome Outcome) error {
 	if !outcome.valid() {
 		return ErrInvalidOutcome

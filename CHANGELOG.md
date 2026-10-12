@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+### Documentation
+
+- Clarify adaptive permit/reap/reset ownership, queue cancellation races,
+  completion error and timing boundaries, algorithm synchronization/defaults,
+  bounded-window estimates and comparison limitations without changing behavior.
+
 ## 1.1.1 - 2026-10-06
 
 ### Changed

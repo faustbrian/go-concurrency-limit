@@ -1,3 +1,8 @@
+// Package comparison_test exercises pinned local/Netflix-reference/Platinum
+// equations and Failsafe public permit paths in a non-releasable module. It is
+// not a JVM benchmark, distributed controller or lifecycle-conformance adapter.
+// Follow the module's PROVENANCE.md and run from this module with workspace
+// resolution disabled; the public root library has no comparison dependencies.
 package comparison_test
 
 import (
@@ -67,6 +72,9 @@ func TestFailsafePublicPermitPathRemainsWithinConfiguredBounds(t *testing.T) {
 	}
 }
 
+// BenchmarkGradientUpdate reuses a 12 ms aggregate RTT at initial in-flight 16.
+// Algorithms are preconstructed but setup is not explicitly reset out of Go
+// benchmark timing; candidate calls expose different aggregate/sample contracts.
 func BenchmarkGradientUpdate(b *testing.B) {
 	b.Run("LocalGradient2", func(b *testing.B) {
 		algorithm := mustLocalGradient(b)
@@ -97,6 +105,9 @@ func BenchmarkGradientUpdate(b *testing.B) {
 	})
 }
 
+// BenchmarkPermitLifecycle measures uncontended acquire/terminal completion.
+// Local windows are one sample/nanosecond, while Failsafe owns wall-clock windows;
+// these are lifecycle costs, not equivalent production latency controllers.
 func BenchmarkPermitLifecycle(b *testing.B) {
 	b.Run("Local", func(b *testing.B) {
 		algorithm := mustLocalGradient(b)

@@ -3,7 +3,10 @@ package concurrencylimit
 import "context"
 
 // Execute acquires a permit, invokes operation once, classifies its completion,
-// and records exactly one terminal outcome. A rejected operation is not called.
+// and attempts one terminal completion. A rejected operation is not called.
+// Work runs synchronously with the caller context; no timeout, retry, cloning or
+// result disposal is added. Cancellation cannot forcibly stop uncooperative work.
+// See ExecuteWithMetadata for completion/error precedence and panic semantics.
 func Execute[T any](
 	ctx context.Context,
 	limiter *Limiter,
@@ -12,7 +15,18 @@ func Execute[T any](
 	return ExecuteWithMetadata(ctx, limiter, Metadata{}, operation)
 }
 
-// ExecuteWithMetadata is Execute with bounded diagnostic admission metadata.
+// ExecuteWithMetadata adds copied diagnostic admission metadata to Execute.
+// After admission a nil operation attempts local drop and returns ErrInvalidOutcome.
+// Operation panics attempt dependency-failure completion and re-panic the original
+// value. Classifier panic/invalid output attempts ignored completion and returns
+// ErrClassifierPanic/ErrInvalidOutcome with the callback's value. A pre-classifier
+// clock fault likewise returns ErrClock after attempted ignored completion.
+//
+// Otherwise the callback error wins over a Complete error; with a nil callback
+// error, the completion error is returned. Partial values always remain caller-owned.
+// Classifier duration uses an earlier timestamp than Complete's learning sample,
+// so synchronous classifier time is included in the latter. Reap/reset races can
+// make completion stale; the helper does not stop protected work or infer reentry.
 func ExecuteWithMetadata[T any](
 	ctx context.Context,
 	limiter *Limiter,

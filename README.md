@@ -89,8 +89,9 @@ expand the public API or release surface.
   `MinDuration` are both satisfied.
 - Local rejection, queue timeout, local drop, and ignored/canceled completion
   do not become dependency-capacity samples.
-- `ReapExpired` provides bounded abandoned-permit recovery without a
-  background goroutine.
+- `ReapExpired` provides accounting reclamation without a background goroutine;
+  admission also reaps. Neither TTL reclamation nor reset stops protected work,
+  so callers must enforce known execution lifetimes.
 - `BeginDrain` rejects new work and releases queued callers. Shutdown
   cancellations should complete as `OutcomeIgnored`.
 - `Reset` starts a new pod-local generation at `InitialLimit`; stale permits

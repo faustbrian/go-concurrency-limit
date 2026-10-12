@@ -569,6 +569,9 @@ func TestCurrentGenerationWindowCanAdapt(t *testing.T) {
 	}
 }
 
+// orderingAlgorithm exposes update-state and second-reset boundaries. Holding
+// limiter.mu in the test freezes application while algorithmMu must still prevent
+// lifecycle Reset from entering the callback between decision and commit.
 type orderingAlgorithm struct {
 	state       AlgorithmState
 	updateState chan struct{}

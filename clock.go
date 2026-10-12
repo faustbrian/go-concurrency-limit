@@ -15,6 +15,8 @@ type systemTimer struct{ timer *time.Timer }
 func (timer systemTimer) C() <-chan time.Time { return timer.timer.C }
 func (timer systemTimer) Stop() bool          { return timer.timer.Stop() }
 
+// guardedTimer caches one validated receive channel and isolates Stop panic
+// from a chosen terminal admission result; it cannot certify faulty-provider cleanup.
 type guardedTimer struct {
 	timer   Timer
 	channel <-chan time.Time

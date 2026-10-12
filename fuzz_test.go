@@ -6,6 +6,9 @@ import (
 	"time"
 )
 
+// FuzzLimitHistoriesRemainFiniteAndBounded maps bytes into synthetic windows
+// and periodic overloads, checking finite state and limits 1..100 with bounded
+// steps. History length is fuzzer-owned; no real request or elapsed-time model runs.
 func FuzzLimitHistoriesRemainFiniteAndBounded(fuzz *testing.F) {
 	fuzz.Add([]byte{1, 2, 3, 4, 5})
 	fuzz.Add([]byte{255, 0, 127, 64})
@@ -42,6 +45,9 @@ func FuzzLimitHistoriesRemainFiniteAndBounded(fuzz *testing.F) {
 	})
 }
 
+// FuzzPermitSequencesRecordAtMostOneOutcome maps bytes to five valid outcomes
+// on an eight-limit policy, checks duplicate completion and ends at zero in-flight.
+// It is a sequential permit-history target, not concurrent callback safety proof.
 func FuzzPermitSequencesRecordAtMostOneOutcome(fuzz *testing.F) {
 	fuzz.Add([]byte{0, 1, 2, 3, 4})
 	fuzz.Fuzz(func(t *testing.T, sequence []byte) {

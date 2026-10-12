@@ -494,6 +494,9 @@ func waitInternalQueued(t *testing.T, limiter *Limiter, want int) {
 	t.Fatalf("queued = %d, want %d", limiter.Snapshot().Queued, want)
 }
 
+// queueClock scripts timer/clock failures within one test history; flags are
+// arranged at fixture phase boundaries, not a general concurrent Clock contract.
+// Positive timer channels remain inert unless this fixture explicitly fires them.
 type queueClock struct {
 	now        time.Time
 	fire       bool
@@ -536,6 +539,8 @@ func (timer *queueTimer) Stop() bool {
 	return true
 }
 
+// sequenceClock consumes a prescribed timestamp sequence so admission, helper
+// classification and terminal completion clock failures can be separated.
 type sequenceClock struct {
 	times      []time.Time
 	panicAfter bool

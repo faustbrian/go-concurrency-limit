@@ -3,7 +3,11 @@
 Immediate rejection is the default and simplest mode. Optional queueing is
 strict global FIFO with a validated absolute count and wait bound. Context
 cancellation, reset, drain, timeout, and a full queue all release callers. A
-grant racing cancellation is completed as ignored so capacity cannot leak.
+grant encountered by the cancellation branch is completed as ignored and the
+cancellation cause is still returned. A selected grant branch can return its
+permit instead; cancellation does not revoke a permit already returned.
+The local timer starts after initial admission-event dispatch, so synchronous
+observer latency is not a strict wall-clock wait bound.
 
 No dynamic queue multiplier is implemented. This avoids a learned limit
 silently multiplying memory. If a future dynamic bound is added, it must retain

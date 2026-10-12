@@ -7,18 +7,24 @@ import (
 )
 
 const (
-	defaultMinWindow       = 100 * time.Millisecond
-	defaultMaxWindow       = time.Second
-	defaultMinSamples      = 20
-	defaultSampleCapacity  = 256
-	defaultQuantile        = 0.9
-	defaultBaselineSmooth  = 0.1
-	defaultPermitTTL       = 5 * time.Minute
-	MaxLimit               = 1 << 30
-	MaxSampleCapacity      = 1 << 16
-	MaxQueued              = 1 << 16
-	MaxPartitions          = 64
-	MaxPartitionBytes      = 128
+	defaultMinWindow      = 100 * time.Millisecond
+	defaultMaxWindow      = time.Second
+	defaultMinSamples     = 20
+	defaultSampleCapacity = 256
+	defaultQuantile       = 0.9
+	defaultBaselineSmooth = 0.1
+	defaultPermitTTL      = 5 * time.Minute
+	// MaxLimit bounds configured limits and portable integer algorithm steps.
+	MaxLimit = 1 << 30
+	// MaxSampleCapacity bounds retained latency samples, not all completed work.
+	MaxSampleCapacity = 1 << 16
+	// MaxQueued bounds queued callers per limiter.
+	MaxQueued = 1 << 16
+	// MaxPartitions bounds explicitly allowed diagnostic partition labels.
+	MaxPartitions = 64
+	// MaxPartitionBytes bounds one partition label in bytes, without sanitizing secrets.
+	MaxPartitionBytes = 128
+	// MaxPriority bounds diagnostic priority; it does not reorder FIFO work.
 	MaxPriority            = 1024
 	maxAlgorithmNameBytes  = 64
 	maxAlgorithmStateBytes = 128
@@ -27,58 +33,114 @@ const (
 // SamplingConfig bounds recent latency aggregation and adaptation steps.
 // Quantiles are exact over at most Capacity retained samples.
 type SamplingConfig struct {
-	MinDuration       time.Duration
-	MaxDuration       time.Duration
-	MinSamples        int
-	Capacity          int
-	Quantile          float64
+	// MinDuration is the minimum eligible-sample window age; zero defaults to 100 ms.
+	MinDuration time.Duration
+	// MaxDuration discards an undersampled sparse window on later activity.
+	// Zero defaults to one second; it must be at least MinDuration, not a background deadline.
+	MaxDuration time.Duration
+	// MinSamples is the positive retained count needed to adapt; zero defaults to 20.
+	// It must not exceed Capacity.
+	MinSamples int
+	// Capacity bounds retained durations in a replacement ring; zero defaults to 256
+	// and the maximum is MaxSampleCapacity. Outcome totals can exceed retained count.
+	Capacity int
+	// Quantile is a finite nearest-rank fraction in (0, 1]; zero defaults to 0.9.
+	Quantile float64
+	// BaselineSmoothing is finite in (0, 1], default 0.1. Lower quantiles replace
+	// the baseline immediately; increases move by this fraction.
 	BaselineSmoothing float64
-	MaxIncrease       int
-	MaxDecrease       int
+	// MaxIncrease bounds one positive limit step; zero defaults to one, maximum MaxLimit.
+	MaxIncrease int
+	// MaxDecrease bounds one downward step; zero defaults to MaxLimit.
+	// Absolute MinLimit still clamps the resulting limit.
+	MaxDecrease int
 }
 
 // QueueConfig enables bounded FIFO waiting when both fields are positive. A
 // zero value selects immediate rejection.
 type QueueConfig struct {
+	// MaxQueued is zero for no queue, or positive and at most package MaxQueued.
 	MaxQueued int
-	MaxWait   time.Duration
+	// MaxWait is positive when queueing is enabled and zero otherwise. Its timer
+	// starts after initial admission event dispatch, not at Acquire entry; synchronous
+	// callbacks are not forcibly interrupted by it.
+	MaxWait time.Duration
 }
 
-// Clock supplies monotonic-capable timestamps and context-aware queue timers.
+// Clock supplies monotonic-capable timestamps and queue timers. Shared providers
+// must be concurrency-safe and prompt; faults are contained but blocking is not
+// forcibly interrupted. Nil Config.Clock selects the standard-library clock.
 type Clock interface {
+	// Now supplies consistent admission/completion times. Backward completion time
+	// is clamped to zero duration and counted as a clock error.
 	Now() time.Time
+	// NewTimer returns a non-nil live timer with a usable channel. Invalid results
+	// or creation/channel panics cause ErrClock on queued acquisition.
 	NewTimer(time.Duration) Timer
 }
 
-// Timer is the minimal clock-owned timer used by queued acquisition.
+// Timer is supplied by a Clock and owned by one queued Acquire call. A valid
+// timer is stopped on return; its notification channel is never closed by the limiter.
 type Timer interface {
+	// C returns the timeout channel; it is validated and cached once before waiting.
 	C() <-chan time.Time
+	// Stop promptly releases timer resources and reports whether firing was prevented.
+	// A panic is contained but cannot establish successful provider cleanup.
 	Stop() bool
 }
 
 // Classifier maps an execution completion to exactly one terminal outcome.
-// It runs without limiter locks and must not retain Completion.Context.
+// It runs synchronously without limiter locks, may overlap across executions and
+// must not retain Completion.Context. Result aliases caller-owned state. Panic
+// returns ErrClassifierPanic with attempted ignored completion; invalid outcomes
+// also attempt ignored completion, which reap/reset races can make stale.
+// Shared mutable classifier state requires caller synchronization.
 type Classifier func(Completion) Outcome
 
-// Observer receives immutable value-only events without limiter locks.
+// Observer receives copied value-only events synchronously without limiter locks.
+// Calls may overlap or deliver out of state order. Panic is counted, not propagated;
+// blocking adds to caller latency and reentrant side effects are not rolled back.
+// Snapshot reentry is safe; avoid waiting for the current call's own completion.
 type Observer func(Event)
 
-// Config contains immutable limiter construction parameters.
+// Config contains construction policy; New copies value fields and partition
+// membership while borrowing callbacks/clock and taking algorithm ownership.
 type Config struct {
-	MinLimit     int
-	MaxLimit     int
+	// MinLimit is at least one and no greater than package MaxLimit.
+	MinLimit int
+	// MaxLimit is between MinLimit and package MaxLimit; limits are process-local.
+	MaxLimit int
+	// InitialLimit is within MinLimit/MaxLimit and is restored by Reset.
 	InitialLimit int
-	Algorithm    Algorithm
-	Sampling     SamplingConfig
-	Queue        QueueConfig
-	PermitTTL    time.Duration
-	Clock        Clock
-	Classifier   Classifier
-	Observer     Observer
-	MaxPriority  int
-	Partitions   []string
+	// Algorithm is required and transfers mutable ownership to this limiter.
+	// Do not share the instance with another limiter or call it concurrently yourself.
+	Algorithm Algorithm
+	// Sampling defines bounded activity-driven adaptation; zero fields normalize
+	// to SamplingConfig defaults, rather than disabling learning.
+	Sampling SamplingConfig
+	// Queue is zero for immediate rejection, or has two positive validated bounds.
+	Queue QueueConfig
+	// PermitTTL is positive, or zero for five minutes. Expiry reclaims accounting
+	// without canceling work, so choose it beyond a known execution-lifetime bound.
+	PermitTTL time.Duration
+	// Clock is borrowed, nil for standard time, and rejects a typed nil provider.
+	Clock Clock
+	// Classifier is borrowed; nil selects canceled-context ignored, nil-error
+	// success, otherwise dependency failure. It need not map an error to overload.
+	Classifier Classifier
+	// Observer is optional and borrowed; nil disables event delivery.
+	Observer Observer
+	// MaxPriority admits metadata priority from zero through this value, at most
+	// package MaxPriority. Zero permits only zero; priority does not change FIFO.
+	MaxPriority int
+	// Partitions is copied into a bounded allowed set, with at most MaxPartitions
+	// unique non-empty labels of at most MaxPartitionBytes bytes. Empty metadata
+	// partition remains allowed; keys are not redacted or assigned separate capacity.
+	Partitions []string
 }
 
+// normalizedConfig copies partition membership and policy values, borrows
+// callbacks/clock, and retains the exclusively owned mutable algorithm.
 type normalizedConfig struct {
 	minLimit     int
 	maxLimit     int

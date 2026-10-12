@@ -8,6 +8,8 @@ import (
 	concurrencylimit "github.com/faustbrian/go-concurrency-limit"
 )
 
+// BenchmarkAcquireComplete measures a unit-capacity fixed permit lifecycle;
+// constructor setup precedes b.Loop and no contention/queued callback is modeled.
 func BenchmarkAcquireComplete(b *testing.B) {
 	limiter, err := concurrencylimit.New(concurrencylimit.Config{
 		MinLimit: 1, MaxLimit: 1, InitialLimit: 1, Algorithm: concurrencylimit.NewFixedAlgorithm(),
@@ -27,6 +29,9 @@ func BenchmarkAcquireComplete(b *testing.B) {
 	}
 }
 
+// BenchmarkAlgorithmWindows measures sequential direct updates of a fixed
+// 20-limit/50-sample window, not limiter admission/sampling. b.Loop excludes each
+// algorithm's Reset/setup from measurement; algorithms evolve across iterations.
 func BenchmarkAlgorithmWindows(b *testing.B) {
 	algorithms := map[string]concurrencylimit.Algorithm{
 		"fixed": concurrencylimit.NewFixedAlgorithm(),

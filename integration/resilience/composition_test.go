@@ -1,3 +1,10 @@
+// Package resilience_test is a non-releasable composition harness for published
+// adaptive admission, Retry and Hedge contracts. Each physical attempt owns its
+// admission; local refusal/drop/ignored outcomes must not pollute dependency
+// learning. It models caller-owned ordering and budgets, not real services,
+// production adapter code or cancellation of uncooperative work. Run from this
+// module with workspace resolution disabled; it does not add dependencies/cgo
+// to the public root package.
 package resilience_test
 
 import (

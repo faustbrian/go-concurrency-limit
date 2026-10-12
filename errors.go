@@ -15,7 +15,7 @@ var (
 	ErrQueueTimeout = errors.New("concurrency-limit: queue wait exceeded")
 	// ErrPermitCompleted identifies a duplicate terminal outcome.
 	ErrPermitCompleted = errors.New("concurrency-limit: permit already completed")
-	// ErrStalePermit identifies a permit invalidated by lifecycle reset.
+	// ErrStalePermit identifies a permit invalidated by lifecycle reset or TTL reap.
 	ErrStalePermit = errors.New("concurrency-limit: stale permit")
 	// ErrInvalidOutcome identifies a terminal value outside the defined set.
 	ErrInvalidOutcome = errors.New("concurrency-limit: invalid outcome")

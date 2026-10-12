@@ -1,11 +1,17 @@
 // Package netflix contains the pinned Gradient2 reference equation used by the
 // comparison harness. It is not a port of Netflix limiter lifecycle or JVM
-// runtime behavior.
+// runtime behavior. This hand-maintained equation translation is pinned to
+// Netflix revision 78a74b9878d38c4c048b0304ce12a162ab7b7222; the comparison
+// module's PROVENANCE.md records source hash, license and update procedure.
+// Construct with New and apply sequential aggregate samples; no synchronization,
+// request admission, services or cgo are supplied.
 package netflix
 
 import "math"
 
-// Gradient2 is a transparent translation of the pinned Netflix update state.
+// Gradient2 owns the fractional estimate and long-RTT state for the fixed
+// comparison profile. It is not concurrency-safe; construction/input validation
+// belongs to the bounded harness, not this internal reference equation.
 type Gradient2 struct {
 	longRTT  float64
 	samples  int
@@ -14,14 +20,17 @@ type Gradient2 struct {
 	maximum  float64
 }
 
-// New constructs the fixed comparison profile.
+// New stores the supplied initial/minimum/maximum without validation. The
+// harness uses ordered positive bounds (initial 16, minimum 1, maximum 64).
 func New(initial, minimum, maximum int) *Gradient2 {
 	return &Gradient2{
 		estimate: float64(initial), minimum: float64(minimum), maximum: float64(maximum),
 	}
 }
 
-// Update applies one aggregate RTT and in-flight sample.
+// Update mutates the estimate from one positive finite RTT in nanoseconds and
+// non-negative bounded in-flight count. Invalid inputs can propagate non-finite
+// arithmetic; callers serialize updates and provide the fixed harness domain.
 func (algorithm *Gradient2) Update(rtt float64, inflight int) {
 	if algorithm.samples < 10 {
 		algorithm.samples++

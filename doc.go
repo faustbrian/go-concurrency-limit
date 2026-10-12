@@ -9,4 +9,13 @@
 //
 // Adaptive state is pod-local. Reset starts a new generation at InitialLimit
 // and invalidates old permits; it does not import or infer fleet capacity.
+// Construction uses New with explicit bounds and an algorithm. The algorithm
+// transfers to that limiter; other callbacks are borrowed. Limiters start no
+// workers and the public package uses only the standard library, without cgo or
+// required external services.
+//
+// TTL expiry (also checked by Acquire) and Reset reclaim accounting without
+// stopping protected work. They are not hard isolation for uncooperative calls;
+// callers own execution deadlines and safe lifecycle boundaries. BeginDrain
+// stops admission but does not wait for completion or cancel accepted work.
 package concurrencylimit

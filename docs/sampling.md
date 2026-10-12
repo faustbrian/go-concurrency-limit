@@ -11,6 +11,8 @@ copy only when closing a window and uses the exact nearest-rank quantile over
 those retained values. Memory is `O(Capacity)` and selection error within the
 retained set is zero; when arrivals exceed capacity before the minimum duration,
 the estimate represents the latest bounded sample set rather than all arrivals.
+Window throughput likewise divides retained count by elapsed window time; it is
+not an exact all-completion throughput counter when the ring overwrites samples.
 
 The baseline is a decaying minimum: lower recent quantiles replace it
 immediately, while increases move by `BaselineSmoothing`. This permits workload

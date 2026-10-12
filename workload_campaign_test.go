@@ -57,6 +57,9 @@ func TestSeededWorkloadCampaignsRemainBoundedAndDeterministic(t *testing.T) {
 	}
 }
 
+// workloadCampaign is a fixed-seed model with synthetic queue latency and
+// service capacity, not a live-load probe. A fresh algorithm per run makes trace
+// equality a determinism check rather than a claim about deployment throughput.
 type workloadCampaign struct {
 	name     string
 	seed     int64

@@ -1,5 +1,9 @@
 // Command report generates the checked-in adaptive-limiter comparison data and
-// convergence plot from pinned implementations and deterministic workloads.
+// convergence plots from pinned implementations and deterministic workloads.
+// Run within the comparison module; its optional output-directory argument is
+// an operator-owned/trusted root, not request input. Reports are synthetic and
+// do not establish live service or JVM performance. No worker/service or cgo
+// integration is introduced by this repository-only command.
 package main
 
 import (
@@ -49,6 +53,9 @@ type result struct {
 	recoveryAdapt  int
 }
 
+// driver normalizes one successful aggregate RTT per synthetic window. It is
+// not equivalent lifecycle/runtime sampling: Failsafe measures actual sleep,
+// while reference/Platinum paths consume provided aggregate durations.
 type driver interface {
 	name() string
 	limit() int
@@ -75,6 +82,9 @@ func openOutputRoot(output string) (*os.Root, error) {
 }
 
 // Return through this owner before main exits so every path closes the root.
+// generateReports writes reports sequentially, not atomically as one set; a
+// later failure can leave earlier outputs replaced. Root/file ownership remains
+// operator-controlled and must not be shared with hostile writers.
 func generateReports(output string) (err error) {
 	root, err := openOutputRoot(output)
 	if err != nil {
@@ -121,6 +131,8 @@ func campaigns() []workload {
 	}
 }
 
+// run assigns a fixed-seed synthetic overload queue (4 ms per excess admitted
+// request); goodput/rejection/latency metrics describe this model, not live IO.
 func run(candidate workload, implementation driver) result {
 	random := rand.New(rand.NewSource(candidate.seed)) // #nosec G404 -- Fixed seeds reproduce synthetic benchmark workloads; this randomness has no security-sensitive purpose.
 	measurement := result{
@@ -309,6 +321,8 @@ func (driver *failsafeDriver) observe(rtt time.Duration, inflight int) {
 	finishFailsafeAggregate(permits)
 }
 
+// finishFailsafeAggregate releases all physical permits but records only the
+// final one, avoiding multiple learned samples for one aggregate model window.
 func finishFailsafeAggregate(permits []adaptivelimiter.Permit) {
 	for index, permit := range permits {
 		if index != len(permits)-1 {

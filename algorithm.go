@@ -8,44 +8,75 @@ import (
 // Window is the immutable aggregate supplied to an Algorithm. RecentLatency
 // is the configured exact quantile of a bounded recent sample window.
 type Window struct {
-	CurrentLimit        int
-	Samples             int
-	MaxInFlight         int
-	RecentLatency       time.Duration
-	BaselineLatency     time.Duration
-	Throughput          float64
-	PreviousThroughput  float64
+	// CurrentLimit is the limiter's integer admission limit when this window closed.
+	CurrentLimit int
+	// Samples is retained eligible duration count, which can be less than all window completions.
+	Samples int
+	// MaxInFlight is peak accounted concurrency for the window, including non-learning admissions.
+	MaxInFlight int
+	// RecentLatency is the nearest-rank configured quantile of retained durations.
+	RecentLatency time.Duration
+	// BaselineLatency is the limiter's smoothed minimum recent-quantile estimate.
+	BaselineLatency time.Duration
+	// Throughput is retained Samples divided by elapsed window seconds; ring
+	// overwrite makes it an estimate rather than all-completion throughput.
+	Throughput float64
+	// PreviousThroughput is the preceding closed window's throughput estimate.
+	PreviousThroughput float64
+	// PreviousMaxInFlight is the preceding closed window's peak accounted concurrency.
 	PreviousMaxInFlight int
-	Overloads           uint64
-	DependencyFailures  uint64
-	generationToken     *lifecycleGeneration
+	// Overloads counts eligible overload completions, including overwritten durations.
+	Overloads uint64
+	// DependencyFailures counts eligible dependency-failure completions in the window.
+	DependencyFailures uint64
+	generationToken    *lifecycleGeneration
 }
 
 // Decision is an algorithm's requested next limit and diagnostic state. The
 // limiter applies configured step bounds and absolute min/max bounds.
 type Decision struct {
+	// Limit is requested integer admission capacity, clamped when the limiter applies it.
 	Limit int
+	// State must be finite/bounded and equal Algorithm.State after Update.
+	// The limiter publishes its applied Limit as State.Estimate.
 	State AlgorithmState
 }
 
 // AlgorithmState is a bounded, value-only diagnostic description of the most
 // recent algorithm update.
 type AlgorithmState struct {
-	Name          string
-	Reason        string
-	Estimate      float64
-	Gradient      float64
+	// Name is non-empty and at most 64 bytes; labels are not redacted.
+	Name string
+	// Reason is optional and at most 128 bytes, without automatic sanitization.
+	Reason string
+	// Estimate is finite proposed capacity; accepted limiter snapshots rewrite it
+	// to applied integer capacity, while standalone algorithms can retain fractions.
+	Estimate float64
+	// Gradient is finite algorithm-specific diagnostic state (zero when unused).
+	Gradient float64
+	// QueueEstimate is finite algorithm-specific queue diagnostics, not actual FIFO depth.
 	QueueEstimate float64
-	Throughput    float64
+	// Throughput is finite algorithm-specific throughput diagnostics (zero when unused).
+	Throughput float64
 }
 
 // Algorithm computes a concurrency limit from completed sampling windows.
 // Limiter serializes Update, Reset, and State calls and never holds its state
-// lock while invoking them. Ownership transfers to Limiter at construction.
+// lock while invoking them. Ownership transfers to one Limiter at construction;
+// do not share mutable instances between limiters or access them concurrently.
+// Algorithm calls must return promptly and must not reenter the owner's Reset or
+// adaptation paths while algorithmMu is held. Panics/invalid state are contained;
+// blocking cannot be forcibly interrupted. Standalone constructor results have
+// no internal synchronization; use Reset when explicit cold-start state is needed.
 type Algorithm interface {
+	// Name returns a non-empty identity of at most 64 bytes at construction.
 	Name() string
+	// Update consumes a copied window and updates State to exactly its returned
+	// Decision.State. Non-finite or mismatched diagnostics reject application.
 	Update(Window) Decision
+	// Reset replaces algorithm state for the given positive initial capacity.
 	Reset(initialLimit int)
+	// State returns copied finite diagnostics, not mutable shared collections.
 	State() AlgorithmState
 	algorithm()
 }
@@ -86,9 +117,13 @@ func (algorithm *fixedAlgorithm) State() AlgorithmState { return algorithm.state
 // exceeded. It increases only when observed in-flight work reached at least
 // half the current limit.
 type AIMDConfig struct {
-	Increase       int
+	// Increase is additive capacity in [1, MaxLimit]; no zero default is supplied.
+	Increase int
+	// DecreaseFactor is finite in (0, 1) and multiplies CurrentLimit before floor.
 	DecreaseFactor float64
-	LatencyLimit   time.Duration
+	// LatencyLimit is non-negative; zero disables its threshold and positive
+	// values decrease only when RecentLatency strictly exceeds it.
+	LatencyLimit time.Duration
 }
 
 type aimdAlgorithm struct {
@@ -96,7 +131,8 @@ type aimdAlgorithm struct {
 	state  AlgorithmState
 }
 
-// NewAIMDAlgorithm validates and constructs an AIMD reference algorithm.
+// NewAIMDAlgorithm validates explicit AIMD tuning and returns a fresh owned
+// instance. Invalid parameters wrap ErrInvalidConfig; no zero defaults apply.
 func NewAIMDAlgorithm(config AIMDConfig) (Algorithm, error) {
 	if config.Increase < 1 || config.Increase > MaxLimit {
 		return nil, invalidConfig("AIMD.Increase", "must be in [1, MaxLimit]")
@@ -142,9 +178,13 @@ func (algorithm *aimdAlgorithm) State() AlgorithmState { return algorithm.state 
 // ceil(limit*(1-baseline/recent)). Queue estimates below Alpha increase the
 // limit; estimates above Beta decrease it.
 type VegasConfig struct {
-	Alpha    int
-	Beta     int
+	// Alpha is a positive low-queue threshold; queue below it increases capacity.
+	Alpha int
+	// Beta is greater than Alpha and at most MaxLimit; queue above it decreases.
+	Beta int
+	// Increase is the positive requested gain, at most MaxLimit, before limiter clamps.
 	Increase int
+	// Decrease is the positive requested reduction, at most MaxLimit, before clamps.
 	Decrease int
 }
 
@@ -163,7 +203,9 @@ func NewDefaultAlgorithm() Algorithm {
 	}
 }
 
-// NewVegasAlgorithm validates and constructs a Vegas-style algorithm.
+// NewVegasAlgorithm validates explicit thresholds/gains and returns a fresh
+// instance. Invalid parameters wrap ErrInvalidConfig; this is RPC queue control,
+// not TCP protocol conformance or a latency guarantee.
 func NewVegasAlgorithm(config VegasConfig) (Algorithm, error) {
 	if config.Alpha < 1 {
 		return nil, invalidConfig("Vegas.Alpha", "must be positive")
@@ -219,11 +261,17 @@ func (algorithm *vegasAlgorithm) State() AlgorithmState { return algorithm.state
 // Gradient2Config configures the reviewed Netflix Gradient2 equation. The
 // long-window RTT is an exponential average with alpha 2/(LongWindow+1).
 type Gradient2Config struct {
-	LongWindow  int
-	Smoothing   float64
-	Tolerance   float64
+	// LongWindow is in [2, MaxSampleCapacity]; after ten warmup updates its
+	// exponential alpha is 2/(LongWindow+1).
+	LongWindow int
+	// Smoothing is finite in (0, 1] and blends the fractional target estimate.
+	Smoothing float64
+	// Tolerance is positive, finite and at most MaxLimit; it scales long/short RTT.
+	Tolerance float64
+	// MinGradient is finite in (0, 1], the lower gradient clamp.
 	MinGradient float64
-	QueueSize   int
+	// QueueSize is an additive target allowance in [0, MaxLimit], not FIFO capacity.
+	QueueSize int
 }
 
 type gradient2Algorithm struct {
@@ -234,7 +282,11 @@ type gradient2Algorithm struct {
 	state         AlgorithmState
 }
 
-// NewGradient2Algorithm validates and constructs a Gradient2 algorithm.
+// NewGradient2Algorithm validates explicit Gradient2 tuning and returns a fresh
+// instance; invalid parameters wrap ErrInvalidConfig. The reviewed equation
+// provenance and comparison conditions are recorded in the owning repository
+// benchmarks/comparison/PROVENANCE.md, pinned to Netflix revision
+// 78a74b9878d38c4c048b0304ce12a162ab7b7222; no JVM/lifecycle parity is implied.
 func NewGradient2Algorithm(config Gradient2Config) (Algorithm, error) {
 	if config.LongWindow < 2 || config.LongWindow > MaxSampleCapacity {
 		return nil, invalidConfig("Gradient2.LongWindow", "must be in [2, MaxSampleCapacity]")
@@ -266,6 +318,7 @@ func (algorithm *gradient2Algorithm) Reset(initialLimit int) {
 
 func (algorithm *gradient2Algorithm) Update(window Window) Decision {
 	shortRTT := float64(window.RecentLatency)
+	// The pinned reference uses ten warmup means, not LongWindow warmup samples.
 	if algorithm.warmupSamples < 10 {
 		algorithm.warmupSamples++
 		algorithm.longRTT += (shortRTT - algorithm.longRTT) / float64(algorithm.warmupSamples)
@@ -277,6 +330,8 @@ func (algorithm *gradient2Algorithm) Update(window Window) Decision {
 		algorithm.longRTT *= 0.95
 	}
 
+	// Keep fractions between updates, but resynchronize after the owning limiter
+	// applied integer/step bounds; otherwise hidden drift can defeat clamping.
 	estimate := algorithm.estimate
 	if int(math.Floor(estimate)) != window.CurrentLimit {
 		estimate = float64(window.CurrentLimit)
