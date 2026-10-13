@@ -1,5 +1,8 @@
 # Adaptive limiter resilience composition
 
+[Documentation map](../../docs/index.md) · [Repository README](../../README.md)
+[Next: Documentation map](../../docs/index.md)
+
 This non-releasable integration module proves application-owned composition
 through the public adaptive limiter, strict retry, and hedge contracts. Each
 in-process attempt reports a known outcome, local admission rejection remains

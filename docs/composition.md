@@ -1,5 +1,8 @@
 # Composition
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and defaults](api.md)
+
 Place policies so every physical downstream attempt crosses admission:
 
 ```text

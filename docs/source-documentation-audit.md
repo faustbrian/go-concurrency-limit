@@ -1,5 +1,8 @@
 # Source documentation audit
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and defaults](api.md)
+
 ## Scope and acceptance
 
 Tier A source/API documentation pass from

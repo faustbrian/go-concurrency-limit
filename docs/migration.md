@@ -1,5 +1,8 @@
 # Migration
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and defaults](api.md)
+
 Begin with `NewFixedAlgorithm` at the existing safe concurrency and immediate
 rejection. Verify classification, rejection handling, metrics, and that every
 retry or hedge attempt acquires separately. Then run an adaptive algorithm in a

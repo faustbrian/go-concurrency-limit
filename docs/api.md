@@ -1,5 +1,8 @@
 # API and defaults
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: Operations and dashboards](operations.md)
+
 ## Construction
 
 `Config` requires `MinLimit >= 1`, `MaxLimit >= MinLimit`, an initial limit

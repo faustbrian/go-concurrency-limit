@@ -1,5 +1,8 @@
 # Algorithms and equations
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and defaults](api.md)
+
 The limiter invokes one algorithm after a recent window satisfies both minimum
 duration and minimum sample count. Every requested limit is then clamped by the
 configured per-update step and absolute bounds.

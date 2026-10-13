@@ -1,5 +1,8 @@
 # Benchmarks and simulation evidence
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and defaults](api.md)
+
 `BenchmarkAcquireComplete` measures the complete owned admission path.
 `BenchmarkAlgorithmWindows` compares fixed, AIMD, Vegas-style, and Gradient2
 with the same window semantics, CPU, Go toolchain, and benchmark duration. Run:

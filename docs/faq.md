@@ -1,5 +1,8 @@
 # FAQ
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and defaults](api.md)
+
 ## Why require an algorithm?
 
 It makes adoption and compatibility explicit. `NewDefaultAlgorithm` is a named

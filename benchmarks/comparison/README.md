@@ -1,5 +1,8 @@
 # Adaptive concurrency comparison harness
 
+[Documentation map](../../docs/index.md) · [Repository README](../../README.md)
+[Next: Documentation map](../../docs/index.md)
+
 This non-releasable module isolates comparison dependencies from the public
 `concurrency-limit` module. It compares bounded Gradient2 update and permit
 paths across pinned local and external implementations.

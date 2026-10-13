@@ -1,5 +1,8 @@
 # Queueing, metadata, and fairness
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and defaults](api.md)
+
 Immediate rejection is the default and simplest mode. Optional queueing is
 strict global FIFO with a validated absolute count and wait bound. Context
 cancellation, reset, drain, timeout, and a full queue all release callers. A

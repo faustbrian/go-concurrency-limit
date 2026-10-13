@@ -1,5 +1,8 @@
 # Adaptive concurrency comparison results
 
+[Documentation map](../../../docs/index.md) · [Repository README](../../../README.md)
+[Next: Documentation map](../../../docs/index.md)
+
 Generated on 2026-08-02 with Go 1.26.5 on Darwin arm64 and an Apple M4 Max.
 The benchmark execution revision was
 `e1e1e3c029139c40fd64271710867fb9b13b9a5a`; the complete behavior-affecting

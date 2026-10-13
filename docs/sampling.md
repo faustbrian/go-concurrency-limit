@@ -1,5 +1,8 @@
 # Sampling and tuning
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and defaults](api.md)
+
 Execution starts when a permit is granted, so local queue wait is never part of
 the measured RTT. Go `time.Time` subtraction preserves the monotonic component
 from `time.Now`; a backward injected clock produces zero duration and

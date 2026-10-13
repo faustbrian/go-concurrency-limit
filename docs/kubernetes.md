@@ -1,5 +1,8 @@
 # Kubernetes lifecycle and HPA
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and defaults](api.md)
+
 Learning is process-local and pod-local. A new pod starts at `InitialLimit` and
 does not know fleet capacity. Scale-up multiplies aggregate concurrency while
 each new pod has a cold baseline. During a rolling update, algorithm versions

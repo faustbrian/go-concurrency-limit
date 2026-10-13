@@ -1,5 +1,8 @@
 # Operations and dashboards
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: API and defaults](api.md)
+
 Export snapshots without caller-controlled labels:
 
 - current limit, in-flight work, queue depth, and draining generation;

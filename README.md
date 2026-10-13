@@ -1,10 +1,7 @@
 # concurrency-limit
 
 [![CI](https://github.com/faustbrian/go-concurrency-limit/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/faustbrian/go-concurrency-limit/actions/workflows/ci.yml)
-[![CodeQL](https://img.shields.io/badge/CodeQL-required-blue)](https://github.com/faustbrian/go-concurrency-limit/actions/workflows/ci.yml)
-[![Coverage](https://img.shields.io/badge/coverage-100%25_required-blue)](CONTRIBUTING.md#verification)
-[![Mutation](https://img.shields.io/badge/mutation-100%25_required-blue)](CONTRIBUTING.md#verification)
-[![Documentation](https://img.shields.io/badge/docs-checked_in_CI-blue)](docs/)
+[![Documentation](https://img.shields.io/badge/docs-adoption_and_API-blue)](docs/index.md)
 [![Go Reference](https://pkg.go.dev/badge/github.com/faustbrian/go-concurrency-limit.svg)](https://pkg.go.dev/github.com/faustbrian/go-concurrency-limit)
 [![Release](https://img.shields.io/github/v/release/faustbrian/go-concurrency-limit?sort=semver)](https://github.com/faustbrian/go-concurrency-limit/releases)
 [![Go](https://img.shields.io/badge/go-1.27.0-00ADD8?logo=go)](https://go.dev/)
@@ -15,8 +12,8 @@ limiter for Go. It learns a safe local limit from execution latency, achieved
 throughput, utilization, and explicit overload outcomes before queues grow into
 widespread timeouts.
 
-Browse the versioned [Golib ecosystem index](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/README.md)
-and its [resilience family guidance](https://github.com/faustbrian/go-library-tools/blob/v1.4.0/docs/ecosystem/design-language.md#package-families-and-selection)
+Browse the versioned [Golib ecosystem index](https://github.com/faustbrian/go-library-tools/blob/v1.8.4/docs/ecosystem/README.md)
+and its [resilience family guidance](https://github.com/faustbrian/go-library-tools/blob/v1.8.4/docs/ecosystem/design-language.md#package-families-and-selection)
 to compare adaptive admission with fixed isolation, rate, breaker, retry, and
 hedging policies.
 
@@ -25,6 +22,17 @@ failure-rate throttling, breaker state, retries, hedges, fallbacks, discovery,
 autoscaling, or a distributed control plane.
 
 The module is a stable v1 public library. It requires Go 1.27.0 or newer.
+
+## Adoption entry points
+
+The root module is `github.com/faustbrian/go-concurrency-limit` (stable).
+It requires Go 1.27.0. Pin the published `v1.1.1` root tag
+with `go get github.com/faustbrian/go-concurrency-limit@v1.1.1`.
+Install only the modules your application imports; nested module status and
+migration boundaries remain documented separately.
+
+Start with the [documentation map](docs/index.md) for package selection,
+examples, operational constraints, and contributor references.
 
 ## Install
 

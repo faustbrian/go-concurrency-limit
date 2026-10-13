@@ -1,5 +1,8 @@
 # Security threat model and risk register
 
+[Documentation map](index.md) · [Repository README](../README.md)
+[Next: Operations and dashboards](operations.md)
+
 Version: `CONCURRENCY-LIMIT-TM-1.0`
 
 Reviewed: 2026-09-13
