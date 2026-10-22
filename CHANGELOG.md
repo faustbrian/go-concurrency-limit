@@ -8,6 +8,12 @@
   completion error and timing boundaries, algorithm synchronization/defaults,
   bounded-window estimates and comparison limitations without changing behavior.
 
+## 1.1.2 - 2026-10-22
+
+### Changed
+
+- Publish the current source and documentation with a fresh immutable tag.
+
 ## 1.1.1 - 2026-10-06
 
 ### Changed
