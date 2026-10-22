@@ -12,5 +12,6 @@ require (
 	github.com/bits-and-blooms/bitset v1.24.4 // indirect
 	github.com/google/go-cmp v0.7.0 // indirect
 	github.com/influxdata/tdigest v0.0.1 // indirect
+	golang.org/x/sys v0.48.0 // indirect
 	gonum.org/v1/gonum v0.17.0 // indirect
 )
