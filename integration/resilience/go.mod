@@ -12,4 +12,5 @@ require (
 require (
 	github.com/failsafe-go/failsafe-go v0.9.8 // indirect
 	github.com/faustbrian/go-resilience v1.1.0 // indirect
+	golang.org/x/text v0.43.0 // indirect
 )
